@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Logistics System | Secure Access</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #1a1a2e; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .auth-card { background: white; padding: 40px; border-radius: 20px; width: 500px; box-shadow: 0 15px 45px rgba(0,0,0,0.5); position: relative; }
+        
+        /* --- INLINE NOTIFICATION BOX --- */
+        #status-msg {
+            display: none;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .msg-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+        .msg-success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #1a1a2e; font-size: 0.9rem; }
+        .input-group input, .input-group select { 
+            width: 100%; 
+            padding: 14px; 
+            border: 1.5px solid #eee; 
+            border-radius: 10px; 
+            box-sizing: border-box; 
+            font-size: 1rem;
+            background: #fdfdfd;
+        }
+        .input-group input:focus { outline: none; border-color: #e94560; background: #fff; }
+        ::placeholder { color: #ccc; }
+
+        .btn-auth { 
+            width: 100%; 
+            padding: 16px; 
+            background: #e94560; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: 700; 
+            font-size: 1.1rem; 
+            margin-top: 15px; 
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .btn-auth:hover { background: #c72c41; }
+        .hidden { display: none; }
+        .section-title { border-bottom: 2px solid #f0f0f0; margin: 25px 0 15px; padding-bottom: 8px; color: #e94560; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; }
+        #toggle { text-align: center; cursor: pointer; color: #0f3460; margin-top: 25px; font-weight: 600; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h2 id="title" style="text-align: center; color: #1a1a2e; margin-bottom: 20px; font-weight: 800;">Logistics Portal Login</h2>
+        
+        <div id="status-msg"></div>
+
+        <div id="login-form">
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" id="l-user" placeholder="Enter your username">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="l-pass" placeholder="••••••••">
+            </div>
+            <button class="btn-auth" onclick="handleLogin()">LOGIN</button>
+            <p id="toggle" onclick="switchMode()">Sign up / Create Account</p>
+        </div>
+
+        <div id="reg-form" class="hidden">
+            <div class="input-group">
+                <label>System Role</label>
+                <select id="r-role" onchange="toggleDriverFields()">
+                    <option value="manager">Warehouse Manager</option>
+                    <option value="driver">Truck Driver</option>
+                </select>
+            </div>
+            <div class="section-title">Personal Details</div>
+            <div style="display:flex; gap:10px;" class="input-group">
+                <input type="text" id="r-fname" placeholder="First Name">
+                <input type="text" id="r-lname" placeholder="Last Name">
+            </div>
+            <div class="input-group"><input type="email" id="r-email" placeholder="Email Address"></div>
+            <div class="section-title">Credentials</div>
+            <div class="input-group"><input type="text" id="r-user" placeholder="Choose Username"></div>
+            <div style="display:flex; gap:10px;" class="input-group">
+                <input type="password" id="r-p1" placeholder="Password">
+                <input type="password" id="r-p2" placeholder="Confirm">
+            </div>
+            <button class="btn-auth" onclick="handleRegister()">CREATE ACCOUNT</button>
+            <p id="toggle" onclick="switchMode()">Already have an account? Login</p>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(text, type) {
+            const msgBox = document.getElementById('status-msg');
+            msgBox.innerText = text;
+            msgBox.style.display = 'block';
+            msgBox.className = type === 'error' ? 'msg-error' : 'msg-success';
+        }
+
+        function switchMode() {
+            const isLoginView = document.getElementById('login-form').classList.contains('hidden');
+            document.getElementById('status-msg').style.display = 'none'; // Clear messages on switch
+            if (isLoginView) {
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('reg-form').classList.add('hidden');
+                document.getElementById('title').innerText = "Logistics Portal Login";
+            } else {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('reg-form').classList.remove('hidden');
+                document.getElementById('title').innerText = "Employee Registration";
+            }
+        }
+
+        function toggleDriverFields() { /* ... unchanged ... */ }
+
+        function handleLogin() {
+            const u = document.getElementById('l-user').value;
+            const p = document.getElementById('l-pass').value;
+            
+            if ((u === 'admin' || u === 'arnav123') && p === '123') {
+                showStatus("Access Granted. Redirecting...", "success");
+                setTimeout(() => {
+                    window.location.href = `input.html?user=${encodeURIComponent(u)}&role=manager`;
+                }, 800);
+            } else {
+                showStatus("Invalid Credentials. Please try again.", "error");
+            }
+        }
+
+        function handleRegister() {
+            if (document.getElementById('r-p1').value !== document.getElementById('r-p2').value) {
+                showStatus("Passwords do not match!", "error");
+                return;
+            }
+            showStatus("Registration Successful!", "success");
+            setTimeout(() => switchMode(), 1200);
+        }
+    </script>
+</body>
+</html>

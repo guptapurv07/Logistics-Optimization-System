@@ -1,0 +1,3 @@
+username,password,role,employee_id
+admin,123,manager,MGR-001
+sarah_logistics,pass456,manager,MGR-002

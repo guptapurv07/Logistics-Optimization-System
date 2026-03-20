@@ -1,0 +1,3 @@
+role,email,username,password,fname,lname,phone,address,pincode,state
+manager,admin@logistics.com,admin,123,Apurv,Kumar,9876543210,Sector 62 Warehouse,201301,UP
+driver,john@trucks.com,driver1,123,John,Doe,9988776655,Truck Terminal A,201309,UP

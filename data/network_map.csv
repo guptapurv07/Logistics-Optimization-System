@@ -1,0 +1,21 @@
+source,destination,distance_km,route_type
+Dehradun,Noida,250,Main Highway
+Dehradun,Noida,280,Via Saharanpur
+Dehradun,Chandigarh,170,Direct
+Noida,Delhi,30,Expressway
+Noida,Delhi,45,City Road
+Noida,Agra,190,Yamuna Expressway
+Noida,Agra,210,Old Highway
+Noida,Jaipur,280,NH-48
+Noida,Jaipur,310,Via Alwar
+Delhi,Jaipur,270,Main
+Delhi,Chandigarh,245,NH-44
+Agra,Lucknow,330,Agra-Lucknow Expy
+Agra,Lucknow,380,Via Kanpur
+Jaipur,Ahmedabad,670,NH-48
+Jaipur,Ahmedabad,710,Via Chittorgarh
+Lucknow,Varanasi,320,Purvanchal Expy
+Ahmedabad,Mumbai,520,NE-1
+Ahmedabad,Mumbai,560,Via NH-48
+Mumbai,Pune,150,Mumbai-Pune Expy
+Mumbai,Pune,180,Old NH-4
