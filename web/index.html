@@ -92,37 +92,98 @@
                 </div>
             </div>
 
+            <div id="driver-view" class="view-section" style="display: none;">
+                <header>
+                    <h1 style="font-weight: 800; color: #1a1a2e; margin-bottom: 8px;">Fleet Management & Assets</h1>
+                    <p style="color: #666; font-size: 0.95rem;">Live tracking of vehicle capacities and status at standard regional parking nodes.</p>
+                </header>
+                
+                <div class="results-section" style="margin-top: 30px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>VEHICLE ASSET ID</th>
+                                <th>MAX PAYLOAD CAPACITY</th>
+                                <th>ASSET POSTURE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fleet-table-body">
+                           <tr><td colspan='3' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>Synchronizing with fleet intelligence matrix...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div id="route-view" class="view-section" style="display: none;">
                 <header>
                     <h1 style="font-weight: 800;">Logistics Network Intelligence</h1>
                     <p style="color: #666;">Comparative analysis of manual vs. system-driven path optimization.</p>
                 </header>
                 
-                <div class="results-section" style="margin-top: 30px;">
-                    <div class="comparison-grid">
-                        <div class="comp-card">
-                            <h4 style="color: #888; font-size: 0.8rem; text-transform: uppercase;">Standard Freight Routing</h4>
-                            <span class="dist">30.0 km</span>
-                            <p style="font-size: 0.85rem; color: #bbb;">Calculated via Conventional Heuristics</p>
+                <div class="results-section" style="margin-top: 30px; background: transparent; padding: 0; box-shadow: none;">
+                    <div style="background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%); border-radius: 24px; padding: 40px; color: white; position: relative; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.25); transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'">
+                        
+                        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(233, 69, 96, 0.15); border-radius: 50%; filter: blur(30px);"></div>
+                        <div style="position: absolute; bottom: -30px; left: 10px; width: 100px; height: 100px; background: rgba(39, 174, 96, 0.1); border-radius: 50%; filter: blur(20px);"></div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; position:relative; z-index:1;">
+                            <div>
+                                <h3 style="color: #e94560; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">Efficiency Differential</h3>
+                                <div style="font-size: 3.5rem; font-weight: 900; line-height: 1;"><span id="saved-km-display">0</span> <span style="font-size: 1.5rem; color: #888; font-weight: 600;">km Saved</span></div>
+                            </div>
+                            <div style="text-align: right;">
+                            </div>
                         </div>
-                        <div class="comp-card best">
-                            <h4 style="color: #e94560; font-size: 0.8rem; text-transform: uppercase;">Intelligent System Routing</h4>
-                            <span class="dist">20.0 km</span>
-                            <p style="font-size: 0.85rem; color: #e94560; font-weight: 600;">Optimized Network Path</p>
+
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 30px; margin-bottom: 30px; position: relative; z-index: 1;">
+                            <div style="margin-bottom: 25px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span style="font-weight: 600; color: #aaa;">Conventional Freight Routing</span>
+                                    <span style="font-weight: 800; color: #fff;" id="ui-manual-dist">0 km</span>
+                                </div>
+                                <div style="height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;">
+                                    <div style="height: 100%; width: 100%; background: #555; border-radius: 6px;"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span style="font-weight: 700; color: #e94560;">Intelligent System Routing</span>
+                                    <span style="font-weight: 900; color: #e94560;" id="ui-opt-dist">0 km</span>
+                                </div>
+                                <div style="height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;">
+                                    <div id="ui-opt-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #e94560, #ff6b81); border-radius: 6px; box-shadow: 0 0 15px rgba(233, 69, 96, 0.5); transition: width 1.5s cubic-bezier(0.19, 1, 0.22, 1);"></div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="verdict-box" style="margin-top: 40px;">
-                        <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 1.1rem;">Efficiency Analysis Report</h4>
-                        <p id="dijkstra-verdict" style="font-size: 0.95rem; opacity: 0.9; line-height: 1.6;">
-                            System is currently awaiting active consignment data to generate specific pathfinding metrics...
-                        </p>
+
+                        <div class="verdict-box" style="margin-top: 0; background: rgba(0,0,0,0.2); box-shadow: none; border-left-color: #2ecc71; position:relative; z-index:1;">
+                            <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 1.1rem; color: #2ecc71;">Analysis Report</h4>
+                            <p id="dijkstra-verdict" style="font-size: 0.95rem; opacity: 0.9; line-height: 1.6;">
+                                System is currently awaiting active consignment data...
+                            </p>
+                            <div style="margin-top: 20px; text-align: center;">
+                                <button onclick="document.getElementById('detailed-breakdown').style.display='block'" style="background: rgba(233, 69, 96, 0.1); color: #e94560; padding: 10px 20px; border-radius: 30px; font-weight: 700; border: 1px solid rgba(233, 69, 96, 0.3); font-size: 0.85rem; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" onmouseover="this.style.background='rgba(233, 69, 96, 0.2)'" onmouseout="this.style.background='rgba(233, 69, 96, 0.1)'">
+                                    Expand Shipment Efficiency Breakdown
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="detailed-breakdown" style="display: none; margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; position:relative; z-index:1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">
+                                <h4 style="margin: 0; font-size: 1.1rem; color: #fff;">Consignment Granular Efficiency</h4>
+                                <button onclick="document.getElementById('detailed-breakdown').style.display='none'" style="background:transparent; border:none; color:#888; cursor:pointer; font-size: 1.2rem;">&times;</button>
+                            </div>
+                            <div id="granular-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <script src="data.js"></script>
     <script>
         // 1. SESSION & IDENTITY
         const urlParams = new URLSearchParams(window.location.search);
@@ -135,46 +196,116 @@
         // 2. DATA BRIDGE & DYNAMIC UPDATES
         const pending = JSON.parse(localStorage.getItem('pending_shipments'));
         
-        if (typeof logisticsData !== 'undefined') {
-            const savings = (logisticsData.savings > 0) ? logisticsData.savings : 0.00;
-            const fuel = (logisticsData.fuel > 0) ? logisticsData.fuel : 0;
-            const load = (logisticsData.load > 0) ? logisticsData.load : 0;
-
-            // Indian Rupee Formatting (₹ with 1,00,000 style)
-            document.getElementById('savings-val').innerText = "₹" + savings.toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-
-            document.getElementById('fuel-val').innerText = fuel.toFixed(1) + "%";
-            document.getElementById('load-val').innerText = (load > 100 ? 100 : load).toFixed(1) + "%";
-
-            // Table Injection Logic
-            const tableBody = document.getElementById('allocation-table-body');
-            tableBody.innerHTML = ""; 
-
-            // Priority given to fresh input from input.html
-            const activeData = (pending && pending.length > 0) ? pending : (logisticsData.assignments || []);
-
-            if (activeData.length > 0) {
-                activeData.forEach(s => {
-                    const weight = s.weight || s.w || 0;
-                    tableBody.innerHTML += `
-                        <tr>
-                            <td style="font-weight: 700; color: #1a1a2e;">#CON-0${s.id}</td>
-                            <td>${weight} kg</td>
-                            <td style="color: #666; font-weight: 500;">${s.dest || 'Regional Hub'}</td>
-                            <td><span style="font-weight: 600;">UP-14-BT-9901</span></td>
-                            <td><span class="tag">ACTIVE DISPATCH</span></td>
-                        </tr>`;
+        async function fetchOptimization(shipments) {
+            try {
+                const response = await fetch('/api/optimize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ shipments: shipments })
                 });
                 
-                document.getElementById('dijkstra-verdict').innerHTML = 
-                    `The optimization engine has identified the most cost-effective trajectory to <strong>${activeData[0].dest}</strong>. 
-                    By prioritizing low-latency nodes, the system has successfully mitigated redundant mileage.`;
-            } else {
-                tableBody.innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>Current dispatch queue is empty. Please initialize data via the Entry Portal.</td></tr>";
+                const logisticsData = await response.json();
+                
+                const savings = (logisticsData.savings > 0) ? logisticsData.savings : 0.00;
+                const fuel = (logisticsData.fuel > 0) ? logisticsData.fuel : 0;
+                const load = (logisticsData.load > 0) ? logisticsData.load : 0;
+
+                // Indian Rupee Formatting
+                document.getElementById('savings-val').innerText = "₹" + savings.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2, maximumFractionDigits: 2
+                });
+
+                document.getElementById('fuel-val').innerText = fuel.toFixed(1) + "%";
+                document.getElementById('load-val').innerText = (load > 100 ? 100 : load).toFixed(1) + "%";
+
+                // Table Injection Logic
+                const tableBody = document.getElementById('allocation-table-body');
+                tableBody.innerHTML = ""; 
+
+                if (logisticsData.assignments && logisticsData.assignments.length > 0) {
+                    logisticsData.assignments.forEach(s => {
+                        const truckLabel = s.truck !== -1 ? 'TRUCK-' + s.truck : '<span style="color: #e94560;">NO TRUCK CAPACITY</span>';
+                        const dispatchLabel = s.truck !== -1 ? '<span class="tag">ACTIVE DISPATCH</span>' : '<span class="tag" style="background:#ffebee; color:#c62828;">PENDING RESOURCE</span>';
+
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td style="font-weight: 700; color: #1a1a2e;">#CON-0${s.shipment}</td>
+                                <td>${s.weight} kg</td>
+                                <td style="color: #666; font-weight: 500;">${s.dest || 'Regional Hub'}</td>
+                                <td><span style="font-weight: 600;">${truckLabel}</span></td>
+                                <td>${dispatchLabel}</td>
+                            </tr>`;
+                    });
+                    
+                    document.getElementById('dijkstra-verdict').innerHTML = logisticsData.verdict;
+                } else {
+                    tableBody.innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>Current dispatch queue is empty.</td></tr>";
+                }
+                
+                // Update modern Route Analytics UI
+                const manKm = logisticsData.routing_manual_km || 0;
+                const optKm = logisticsData.routing_optimized_km || 0;
+                
+                document.getElementById('ui-manual-dist').innerText = manKm.toFixed(1) + " km";
+                document.getElementById('ui-opt-dist').innerText = optKm.toFixed(1) + " km";
+                document.getElementById('saved-km-display').innerText = Math.max(0, manKm - optKm).toFixed(1);
+                
+                setTimeout(() => {
+                    const percentage = manKm > 0 ? (optKm / manKm) * 100 : 0;
+                    const bar = document.getElementById('ui-opt-bar');
+                    if(bar) bar.style.width = percentage + "%";
+                }, 100);
+
+                // Map the detailed breakdown
+                const granularList = document.getElementById('granular-list');
+                if (granularList && logisticsData.route_details) {
+                    granularList.innerHTML = "";
+                    logisticsData.route_details.forEach(route => {
+                        granularList.innerHTML += `
+                        <div style="margin-bottom: 20px; background: rgba(0,0,0,0.15); padding: 15px; border-radius: 12px; border-left: 3px solid #e94560;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">To ${route.destination}</span>
+                                <span style="color: #2ecc71; font-weight: 600;">₹${route.savings.toFixed(2)} Saved</span>
+                            </div>
+                            <div style="color: #aaa; font-size: 0.9rem; margin-bottom: 8px;">
+                                <span style="text-decoration: line-through; opacity: 0.6; margin-right: 15px;">Manual: ${route.manual_km.toFixed(1)} km</span>
+                                <span style="color: #fff; font-weight: 500;">Optimized: ${route.optimized_km.toFixed(1)} km</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #888; font-family: monospace; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
+                                ${route.path}
+                            </div>
+                        </div>
+                        `;
+                    });
+                }
+
+                // Fleet Injection Logic
+                const fleetBody = document.getElementById('fleet-table-body');
+                if (fleetBody) fleetBody.innerHTML = "";
+                
+                if (logisticsData.fleet_status && logisticsData.fleet_status.length > 0) {
+                    logisticsData.fleet_status.forEach(t => {
+                        const statusLabel = t.isAvailable ? '<span class="tag" style="background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9;">IDLE AT NOIDA HUB</span>' : '<span class="tag" style="background:#fff3e0; color:#ef6c00; border:1px solid #ffe0b2;">DISPATCHED ALONG ROUTE</span>';
+                        if (fleetBody) fleetBody.innerHTML += `
+                            <tr>
+                                <td style="font-weight: 700; color: #444;">TRUCK ASSET #${t.id}</td>
+                                <td>${t.capacity} kg Capacity Limit</td>
+                                <td>${statusLabel}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error("Optimization failed:", err);
+                document.getElementById('dijkstra-verdict').innerHTML = "Server connection refused or backend API error.";
+                document.getElementById('allocation-table-body').innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: red;'>Could not connect to C++ Base System. Is ./app running?</td></tr>";
             }
+        }
+
+        if (pending && pending.length > 0) {
+            fetchOptimization(pending);
+        } else {
+            document.getElementById('allocation-table-body').innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>No pending data. Initialize via Entry Portal.</td></tr>";
         }
 
         // 3. NAVIGATION CONTROLS

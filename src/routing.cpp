@@ -1,22 +1,22 @@
+#include "../include/algorithms.h"
 #include <map>
 #include <vector>
 #include <queue>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
-struct Edge {
-    std::string to;
-    int weight;
-};
+const int INF = 1e9;
 
-// DIJKSTRA SHORTEST PATH
-int runDijkstraRouting(std::string start, std::string end, std::map<std::string, std::vector<Edge>>& graph) {
-    std::map<std::string, int> distances;
-    for (auto const& [city, _] : graph) distances[city] = 1e9; // Initialize with Infinity
+std::pair<int, std::vector<std::string>> runDijkstraRouting(std::string start, std::string end, std::map<std::string, std::vector<Edge>>& graph) {
+    std::map<std::string, int> dist;
+    std::map<std::string, std::string> parent;
     
-    distances[start] = 0;
+    for (auto const& [city, _] : graph) dist[city] = INF;
+    dist[start] = 0;
+
+    // Min-Priority Queue for Dijkstra Efficiency
     std::priority_queue<std::pair<int, std::string>, std::vector<std::pair<int, std::string>>, std::greater<std::pair<int, std::string>>> pq;
-    
     pq.push({0, start});
 
     while (!pq.empty()) {
@@ -24,15 +24,22 @@ int runDijkstraRouting(std::string start, std::string end, std::map<std::string,
         int d = pq.top().first;
         pq.pop();
 
-        if (d > distances[u]) continue;
+        if (d > dist[u]) continue;
 
         for (auto& edge : graph[u]) {
-            if (distances[u] + edge.weight < distances[edge.to]) {
-                distances[edge.to] = distances[u] + edge.weight;
-                pq.push({distances[edge.to], edge.to});
+            if (dist[u] + edge.weight < dist[edge.to]) {
+                dist[edge.to] = dist[u] + edge.weight;
+                parent[edge.to] = u;
+                pq.push({dist[edge.to], edge.to});
             }
         }
     }
-    
-    return (distances[end] == 1e9) ? -1 : distances[end];
+
+    // Path Reconstruction
+    std::vector<std::string> path;
+    if (dist[end] == INF) return {INF, path};
+
+    for (std::string v = end; v != ""; v = parent[v]) path.push_back(v);
+    std::reverse(path.begin(), path.end());
+    return {dist[end], path};
 }

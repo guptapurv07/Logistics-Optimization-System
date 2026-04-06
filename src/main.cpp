@@ -7,81 +7,14 @@
 #include <queue>
 #include <algorithm>
 #include <iomanip>
-
-#ifdef _WIN32
-    #include <windows.h> // For Sleep on Windows
-#else
-    #include <unistd.h>  // For sleep on Unix/Mac
-#endif
+#include "../include/algorithms.h"
+#include "../include/httplib.h"
+#include "../include/json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
 
-// --- DATA STRUCTURES ---
-const int INF = 1e9;
-
-struct Edge {
-    string to;
-    int weight;
-    string type;
-};
-
-struct Truck {
-    int id;
-    double weightCap;
-    double volCap;
-    double fuelRate; // ₹ per km
-};
-
-// --- 1. DIJKSTRA CORE ENGINE (DAA Implementation) ---
-pair<int, vector<string>> calculateShortestPath(string start, string end, map<string, vector<Edge>>& adj) {
-    map<string, int> dist;
-    map<string, string> parent;
-    
-    for (auto const& [city, _] : adj) dist[city] = INF;
-    dist[start] = 0;
-
-    // Min-Priority Queue for Dijkstra Efficiency
-    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> pq;
-    pq.push({0, start});
-
-    while (!pq.empty()) {
-        string u = pq.top().second;
-        int d = pq.top().first;
-        pq.pop();
-
-        if (d > dist[u]) continue;
-
-        for (auto& edge : adj[u]) {
-            if (dist[u] + edge.weight < dist[edge.to]) {
-                dist[edge.to] = dist[u] + edge.weight;
-                parent[edge.to] = u;
-                pq.push({dist[edge.to], edge.to});
-            }
-        }
-    }
-
-    // Path Reconstruction
-    vector<string> path;
-    if (dist[end] == INF) return {INF, path};
-
-    for (string v = end; v != ""; v = parent[v]) path.push_back(v);
-    reverse(path.begin(), path.end());
-    return {dist[end], path};
-}
-
-// --- 2. DATA BRIDGE: UPDATE WEB/DATA.JS ---
-void updateWebDashboard(int distance, double savings, double load) {
-    ofstream file("web/data.js");
-    file << "const logisticsData = {\n";
-    file << "    savings: " << fixed << setprecision(2) << savings << ",\n";
-    file << "    fuel: " << (distance > 0 ? 33.3 : 0.0) << ",\n";
-    file << "    load: " << load << ",\n";
-    file << "    assignments: []\n";
-    file << "};";
-    file.close();
-}
-
-// --- 3. GRAPH LOADER: READ NETWORK_MAP.CSV ---
+// --- GRAPH LOADER: READ NETWORK_MAP.CSV ---
 map<string, vector<Edge>> loadNetworkMap() {
     map<string, vector<Edge>> adj;
     ifstream file("data/network_map.csv");
@@ -102,7 +35,24 @@ map<string, vector<Edge>> loadNetworkMap() {
     return adj;
 }
 
-// --- 4. MAIN EXECUTION LOOP ---
+// --- TRUCK LOADER: READ TRUCK_DB.CSV ---
+vector<Truck> loadTruckDatabase() {
+    vector<Truck> trucks;
+    ifstream file("data/truck_db.csv");
+    if (!file.is_open()) return trucks;
+    
+    string line, idStr, capStr, volStr, fuelStr;
+    getline(file, line); // Skip header
+    while (getline(file, line)) {
+        stringstream ss(line);
+        if (getline(ss, idStr, ',') && getline(ss, capStr, ',') &&
+            getline(ss, volStr, ',') && getline(ss, fuelStr, ',')) {
+            trucks.push_back(Truck(stoi(idStr), stod(capStr), stod(volStr), stod(fuelStr)));
+        }
+    }
+    return trucks;
+}
+
 int main() {
     cout << "===========================================" << endl;
     cout << "   LOGISTICS ERP BACKEND - NOIDA HUB       " << endl;
@@ -111,54 +61,130 @@ int main() {
     map<string, vector<Edge>> network = loadNetworkMap();
     cout << "[SUCCESS] Network Map Loaded (" << network.size() << " Cities Synced)." << endl;
 
-    // Launch UI
-    #ifdef __APPLE__
-        system("open web/login.html");
-    #elif _WIN32
-        system("start web/login.html");
-    #else
-        system("xdg-open web/login.html");
-    #endif
+    httplib::Server svr;
 
-    cout << "[SYSTEM] Waiting for Shipment Planning data..." << endl;
+    // Serve all UI files in the 'web' folder dynamically
+    svr.set_mount_point("/", "./web");
 
-    // INFINITE MONITORING LOOP
-    while (true) {
-        // Simulating checking for "trigger" from web input
-        // In a real demo, you can manually trigger a calculation here
-        string targetCity;
-        cout << "\n Enter Target City for Optimization (or 'exit'): ";
-        cin >> targetCity;
+    svr.Post("/api/optimize", [&network](const httplib::Request& req, httplib::Response& res) {
+        try {
+            auto j = json::parse(req.body);
+            vector<Shipment> shipments;
+            
+            for (const auto& item : j["shipments"]) {
+                shipments.push_back({
+                    item["id"].get<int>(),
+                    stod(item["weight"].get<string>()),
+                    stod(item["volume"].get<string>()),
+                    item["dest"].get<string>()
+                });
+            }
 
-        if (targetCity == "exit") break;
+            // Load trucks representing our dynamic fleet from database
+            vector<Truck> trucks = loadTruckDatabase();
 
-        // Run Dijkstra from Dehradun (Source) to User Input
-        auto result = calculateShortestPath("Dehradun", targetCity, network);
+            auto assignments = performGreedyAllocation(shipments, trucks);
 
-        if (result.first == INF) {
-            cout << "[!] No valid route found to " << targetCity << endl;
-        } else {
-            cout << "--- DIJKSTRA OPTIMIZATION VERDICT ---" << endl;
-            cout << "Shortest Route: " << result.first << " km" << endl;
-            cout << "Best Path: ";
-            for (int i = 0; i < result.second.size(); i++) 
-                cout << result.second[i] << (i == result.second.size()-1 ? "" : " -> ");
-            cout << endl;
+            json response;
+            response["assignments"] = json::array();
+            
+            response["fleet_status"] = json::array();
+            
+            vector<string> uniqueDestinations;
+            for(auto& s: shipments) {
+                if(find(uniqueDestinations.begin(), uniqueDestinations.end(), s.destination) == uniqueDestinations.end()) {
+                    uniqueDestinations.push_back(s.destination);
+                }
+            }
 
-            // Calculate savings (Base logic: Manual Route is usually 20% longer)
-            double manualDist = result.first * 1.25;
-            double savings = (manualDist - result.first) * 15.50; // ₹15.50 per km
+            response["route_details"] = json::array();
 
-            updateWebDashboard(result.first, savings, 85.5);
-            cout << "[SUCCESS] Web Dashboard updated with ₹" << savings << " savings." << endl;
+            double totalSavings = 0;
+            int totalDist = 0;
+            double totalManualDist = 0;
+            double latestLoad = 85.5; 
+            string verdict = "Optimization Summary:<br>";
+            bool foundValidRoute = false;
+
+            for(const auto& targetCity : uniqueDestinations) {
+                auto result = runDijkstraRouting("Noida", targetCity, network);
+                if (result.first != 1e9) {
+                    foundValidRoute = true;
+                    totalDist += result.first;
+                    double manualDist = result.first * 1.25;
+                    totalManualDist += manualDist;
+                    double routeSavings = (manualDist - result.first) * 15.50;
+                    totalSavings += routeSavings; 
+                    
+                    string pathStr;
+                    for (size_t i = 0; i < result.second.size(); ++i) {
+                        pathStr += result.second[i];
+                        if (i != result.second.size() - 1) pathStr += " -> ";
+                    }
+                    verdict += "To <strong>" + targetCity + "</strong>: [" + pathStr + "]<br>";
+                    
+                    response["route_details"].push_back({
+                        {"destination", targetCity},
+                        {"optimized_km", result.first},
+                        {"manual_km", manualDist},
+                        {"savings", routeSavings},
+                        {"path", pathStr}
+                    });
+                } else {
+                    verdict += "<span style='color:red;'>Unreachable: " + targetCity + "</span><br>";
+                }
+            }
+            
+            if(!foundValidRoute && !uniqueDestinations.empty()) {
+                verdict = "No valid route sequences found from Noida for given destinations.";
+            } else if (uniqueDestinations.empty()) {
+                verdict = "No destination provided by dispatch array.";
+            }
+
+            // Inject Fleet constraints logic
+            for (const auto& t : trucks) {
+                 response["fleet_status"].push_back({
+                     {"id", t.id},
+                     {"capacity", t.capacity},
+                     {"isAvailable", t.isAvailable}
+                 });
+            }
+
+            for (auto& pair : assignments) {
+                // Look up original shipment for metadata
+                auto it = find_if(shipments.begin(), shipments.end(), [pair](const Shipment& s) { return s.id == pair.first; });
+                string dest = it != shipments.end() ? it->destination : "Unknown";
+                double weight = it != shipments.end() ? it->weight : 0;
+                
+                response["assignments"].push_back({
+                    {"shipment", pair.first},
+                    {"truck", pair.second},
+                    {"dest", dest},
+                    {"weight", weight}
+                });
+            }
+
+            response["savings"] = totalSavings;
+            response["routing_manual_km"] = totalManualDist;
+            response["routing_optimized_km"] = totalDist;
+            response["fuel"] = totalDist > 0 ? 33.3 : 0.0;
+            response["load"] = latestLoad;
+            response["verdict"] = verdict;
+
+            res.set_content(response.dump(), "application/json");
+            
+            cout << "[API] Optimization computed for batch size " << uniqueDestinations.size() << endl;
+
+        } catch (const exception& e) {
+            json err = {{"error", e.what()}};
+            res.status = 500;
+            res.set_content(err.dump(), "application/json");
         }
+    });
 
-        #ifdef _WIN32
-            Sleep(1000);
-        #else
-            sleep(1);
-        #endif
-    }
+    cout << "Server successfully initialized!" << endl;
+    cout << "-> Open your browser and navigate to http://localhost:8080/login.html" << endl;
+    svr.listen("0.0.0.0", 8080);
 
     return 0;
 }
