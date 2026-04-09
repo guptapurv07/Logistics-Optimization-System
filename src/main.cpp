@@ -53,6 +53,25 @@ vector<Truck> loadTruckDatabase() {
     return trucks;
 }
 
+// --- DRIVER LOADER: READ TRUCK_DRIVER.CSV ---
+map<int, pair<string, string>> loadDriverDatabase() {
+    map<int, pair<string, string>> drivers;
+    ifstream file("data/truck_driver.csv");
+    if (!file.is_open()) return drivers;
+    
+    string line, user, pass, role, license, tidStr;
+    getline(file, line); // Skip header
+    while (getline(file, line)) {
+        stringstream ss(line);
+        if (getline(ss, user, ',') && getline(ss, pass, ',') &&
+            getline(ss, role, ',') && getline(ss, license, ',') &&
+            getline(ss, tidStr, ',')) {
+            drivers[stoi(tidStr)] = {user, license};
+        }
+    }
+    return drivers;
+}
+
 int main() {
     cout << "===========================================" << endl;
     cout << "   LOGISTICS ERP BACKEND - NOIDA HUB       " << endl;
@@ -72,10 +91,15 @@ int main() {
             vector<Shipment> shipments;
             
             for (const auto& item : j["shipments"]) {
+                double w = item["weight"].is_string()
+                    ? stod(item["weight"].get<string>())
+                    : item["weight"].get<double>();
+                double v = item["volume"].is_string()
+                    ? stod(item["volume"].get<string>())
+                    : item["volume"].get<double>();
                 shipments.push_back({
                     item["id"].get<int>(),
-                    stod(item["weight"].get<string>()),
-                    stod(item["volume"].get<string>()),
+                    w, v,
                     item["dest"].get<string>()
                 });
             }
@@ -102,7 +126,6 @@ int main() {
             double totalSavings = 0;
             int totalDist = 0;
             double totalManualDist = 0;
-            double latestLoad = 85.5; 
             string verdict = "Optimization Summary:<br>";
             bool foundValidRoute = false;
 
@@ -141,12 +164,24 @@ int main() {
                 verdict = "No destination provided by dispatch array.";
             }
 
+            // Load drivers for 1:1 asset tracking
+            auto driverMap = loadDriverDatabase();
+
             // Inject Fleet constraints logic
             for (const auto& t : trucks) {
+                 string d_name = "Unassigned";
+                 string d_license = "N/A";
+                 if (driverMap.count(t.id)) {
+                     d_name = driverMap[t.id].first;
+                     d_license = driverMap[t.id].second;
+                 }
+                 
                  response["fleet_status"].push_back({
                      {"id", t.id},
                      {"capacity", t.capacity},
-                     {"isAvailable", t.isAvailable}
+                     {"isAvailable", t.isAvailable},
+                     {"driver_name", d_name},
+                     {"driver_license", d_license}
                  });
             }
 
@@ -167,8 +202,22 @@ int main() {
             response["savings"] = totalSavings;
             response["routing_manual_km"] = totalManualDist;
             response["routing_optimized_km"] = totalDist;
-            response["fuel"] = totalDist > 0 ? 33.3 : 0.0;
-            response["load"] = latestLoad;
+
+            // Route Efficiency: % saved by Dijkstra vs brute manual routing
+            double routeEfficiency = (totalManualDist > 0)
+                ? ((totalManualDist - totalDist) / totalManualDist) * 100.0
+                : 0.0;
+
+            // Fleet Utilization: % of trucks currently dispatched on routes
+            int trucksInUse = 0;
+            for (const auto& t : trucks) {
+                if (!t.isAvailable) trucksInUse++;
+            }
+            double fleetUtilization = trucks.empty() ? 0.0
+                : ((double)trucksInUse / trucks.size()) * 100.0;
+
+            response["fuel"] = routeEfficiency;
+            response["load"] = fleetUtilization;
             response["verdict"] = verdict;
 
             res.set_content(response.dump(), "application/json");

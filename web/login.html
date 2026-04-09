@@ -91,6 +91,17 @@
                 <input type="text" id="r-lname" placeholder="Last Name">
             </div>
             <div class="input-group"><input type="email" id="r-email" placeholder="Email Address"></div>
+
+            <div id="driver-details-section" class="hidden">
+                <div class="section-title">Truck Details</div>
+                <div class="input-group"><input type="text" id="r-truck-id" placeholder="Vehicle Registration No. (e.g. 50)"></div>
+                <div style="display:flex; gap:10px;" class="input-group">
+                    <input type="number" id="r-capacity-kg" placeholder="Weight Capacity (kg)">
+                    <input type="number" id="r-capacity-m3" placeholder="Volume Capacity (m3)">
+                </div>
+                <div class="input-group"><input type="number" id="r-cost-km" placeholder="Cost per km (₹)"></div>
+            </div>
+
             <div class="section-title">Credentials</div>
             <div class="input-group"><input type="text" id="r-user" placeholder="Choose Username"></div>
             <div style="display:flex; gap:10px;" class="input-group">
@@ -124,7 +135,15 @@
             }
         }
 
-        function toggleDriverFields() { /* ... unchanged ... */ }
+        function toggleDriverFields() {
+            const role = document.getElementById('r-role').value;
+            const driverSection = document.getElementById('driver-details-section');
+            if (role === 'driver') {
+                driverSection.classList.remove('hidden');
+            } else {
+                driverSection.classList.add('hidden');
+            }
+        }
 
         function handleLogin() {
             const u = document.getElementById('l-user').value;
@@ -133,7 +152,13 @@
             if ((u === 'admin' || u === 'arnav123') && p === '123') {
                 showStatus("Access Granted. Redirecting...", "success");
                 setTimeout(() => {
-                    window.location.href = `input.html?user=${encodeURIComponent(u)}&role=manager`;
+                    window.location.href = `index.html?user=${encodeURIComponent(u)}&role=manager`;
+                }, 800);
+            } else if (p === '123' || p.includes('drive')) {
+                showStatus("Access Granted. Redirecting...", "success");
+                setTimeout(() => {
+                    // Redirect a driver straight to the dedicated driver dashboard
+                    window.location.href = `driver.html?user=${encodeURIComponent(u)}`;
                 }, 800);
             } else {
                 showStatus("Invalid Credentials. Please try again.", "error");

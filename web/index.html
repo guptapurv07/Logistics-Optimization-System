@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logistics Optimization System | Enterprise Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -17,6 +18,9 @@
             <ul>
                 <li class="nav-item active" data-target="warehouse-view">
                     <span class="icon">📊</span> Operations Dashboard
+                </li>
+                <li class="nav-item" data-target="add-shipment-view">
+                    <span class="icon">➕</span> Add Shipment
                 </li>
                 <li class="nav-item" data-target="driver-view">
                     <span class="icon">🚛</span> Fleet Management
@@ -38,6 +42,30 @@
         </nav>
 
         <main class="content">
+            <div id="add-shipment-view" class="view-section" style="display: none;">
+                <header style="margin-bottom: 20px;">
+                    <h1 style="font-weight: 800; color: #1a1a2e; margin-bottom: 8px;">Shipment Planning Portal</h1>
+                    <p style="color: #666; font-size: 0.95rem;">
+                        Dispatch Base: <span style="color: #e94560; font-weight: 800;">Noida Logistics Hub (Sector 62)</span>
+                    </p>
+                </header>
+                
+                <div class="results-section" style="margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+                    <div id="shipment-list">
+                        <div class="shipment-row" style="display: flex; gap: 12px; margin-bottom: 15px; background: #fcfcfc; padding: 15px; border-radius: 12px; border: 1px solid #eee; align-items: center;">
+                            <input type="number" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                            <input type="number" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                            <input type="text" placeholder="Destination (e.g., Mumbai, Pune, Agra)" class="d-in" style="flex:2; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 20px; margin-top: 30px;">
+                        <button onclick="addRow()" style="flex: 1; padding: 16px; background: #16213e; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">+ Add Shipment Row</button>
+                        <button onclick="runOptimizationFromDash()" style="flex: 2; background: #e94560; color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; box-shadow: 0 5px 15px rgba(233, 69, 96, 0.3);">Process Optimized Dispatch</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="warehouse-view" class="view-section">
                 <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;">
                     <div>
@@ -74,6 +102,7 @@
                 <div class="results-section">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="font-size: 1.25rem; color: #1a1a2e; margin: 0;">Live Consignment Tracking</h2>
+                        <button onclick="clearQueue()" style="background: #fff0f3; color: #e94560; border: 1px solid #fcc; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;" title="Remove all pending shipments">&#x2715; Clear Queue</button>
                     </div>
                     
                     <table>
@@ -90,6 +119,31 @@
                             </tbody>
                     </table>
                 </div>
+
+                <div class="results-section" style="margin-top: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="font-size: 1.25rem; color: #1a1a2e; margin: 0;">Completed Financial Ledger</h2>
+                        <div style="background: rgba(46, 204, 113, 0.1); padding: 5px 15px; border-radius: 8px; border: 1px solid rgba(46, 204, 113, 0.3);">
+                            <span style="font-size: 0.8rem; color: #2ecc71; font-weight: 700;">TOTAL PROFIT: </span>
+                            <span id="ledger-total-profit" style="font-size: 1.1rem; color: #27ae60; font-weight: 800;">₹0.00</span>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>CONSIGNMENT ID</th>
+                                <th>DISPATCH DATE</th>
+                                <th>COMPLETION DATE</th>
+                                <th>EST. TIME</th>
+                                <th>PROFIT MARGIN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completed-ledger-body">
+                            <tr><td colspan='5' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>No completed consignments historical data found.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="driver-view" class="view-section" style="display: none;">
@@ -104,6 +158,7 @@
                             <tr>
                                 <th>VEHICLE ASSET ID</th>
                                 <th>MAX PAYLOAD CAPACITY</th>
+                                <th>ASSIGNED OPERATOR</th>
                                 <th>ASSET POSTURE</th>
                             </tr>
                         </thead>
@@ -115,69 +170,76 @@
             </div>
 
             <div id="route-view" class="view-section" style="display: none;">
-                <header>
-                    <h1 style="font-weight: 800;">Logistics Network Intelligence</h1>
-                    <p style="color: #666;">Comparative analysis of manual vs. system-driven path optimization.</p>
+                <header style="margin-bottom: 24px;">
+                    <h1 style="font-weight: 800; color: #1a1a2e;">Network Intelligence Map</h1>
+                    <p style="color: #666;">Live logistics routing graph — nodes light up as dispatches are processed.</p>
                 </header>
-                
-                <div class="results-section" style="margin-top: 30px; background: transparent; padding: 0; box-shadow: none;">
-                    <div style="background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%); border-radius: 24px; padding: 40px; color: white; position: relative; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.25); transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'">
-                        
-                        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(233, 69, 96, 0.15); border-radius: 50%; filter: blur(30px);"></div>
-                        <div style="position: absolute; bottom: -30px; left: 10px; width: 100px; height: 100px; background: rgba(39, 174, 96, 0.1); border-radius: 50%; filter: blur(20px);"></div>
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; position:relative; z-index:1;">
+
+                <div style="display: grid; grid-template-columns: 1fr 420px; gap: 24px; align-items: start;">
+
+                    <!-- CYTOSCAPE MAP PANEL -->
+                    <div style="background: #0f1628; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative;">
+                        <div style="padding: 16px 20px; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #e94560; font-weight: 700; font-size: 0.85rem; letter-spacing: 1.5px; text-transform: uppercase;">🗺 India Logistics Grid</span>
+                            <span id="map-status" style="color: #64748b; font-size: 0.8rem;">30 nodes · 120+ edges</span>
+                        </div>
+                        <div id="cy-map" style="width: 100%; height: 580px;"></div>
+                        <div style="padding: 12px 20px; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 24px; font-size: 0.78rem;">
+                            <span style="color: #64748b;"><span style="display:inline-block; width:10px; height:10px; background:#1e3a5f; border:1.5px solid #334155; border-radius:50%; margin-right:6px;"></span>Inactive Node</span>
+                            <span style="color: #2ecc71;"><span style="display:inline-block; width:12px; height:12px; background:#2ecc71; border-radius:50%; margin-right:6px;"></span>Origin Hub (Noida)</span>
+                            <span style="color: #e94560;"><span style="display:inline-block; width:10px; height:10px; background:#e94560; border-radius:50%; margin-right:6px;"></span>Transit Waypoint</span>
+                            <span style="color: #f59e0b;"><span style="display:inline-block; width:14px; height:14px; background:#f59e0b; border-radius:50%; box-shadow: 0 0 8px #f59e0b; margin-right:6px;"></span>Final Destination</span>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT ANALYTICS PANEL -->
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+
+                        <!-- Efficiency Card -->
+                        <div style="background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%); border-radius: 20px; padding: 28px; color: white; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                            <div style="position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; background: rgba(233, 69, 96, 0.12); border-radius: 50%; filter: blur(25px);"></div>
+                            <h3 style="color: #e94560; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Efficiency Differential</h3>
+                            <div style="font-size: 2.8rem; font-weight: 900; line-height: 1; margin-bottom: 20px;"><span id="saved-km-display">0</span> <span style="font-size: 1.1rem; color: #888; font-weight: 600;">km Saved</span></div>
+
+                            <div style="margin-bottom: 14px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-weight: 600; color: #888; font-size: 0.85rem;">Manual Routing</span>
+                                    <span style="font-weight: 700; color: #fff; font-size: 0.85rem;" id="ui-manual-dist">0 km</span>
+                                </div>
+                                <div style="height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px;">
+                                    <div style="height: 100%; width: 100%; background: #334155; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+
                             <div>
-                                <h3 style="color: #e94560; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">Efficiency Differential</h3>
-                                <div style="font-size: 3.5rem; font-weight: 900; line-height: 1;"><span id="saved-km-display">0</span> <span style="font-size: 1.5rem; color: #888; font-weight: 600;">km Saved</span></div>
-                            </div>
-                            <div style="text-align: right;">
-                            </div>
-                        </div>
-
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 30px; margin-bottom: 30px; position: relative; z-index: 1;">
-                            <div style="margin-bottom: 25px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                    <span style="font-weight: 600; color: #aaa;">Conventional Freight Routing</span>
-                                    <span style="font-weight: 800; color: #fff;" id="ui-manual-dist">0 km</span>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-weight: 700; color: #e94560; font-size: 0.85rem;">Intelligent Routing</span>
+                                    <span style="font-weight: 900; color: #e94560; font-size: 0.85rem;" id="ui-opt-dist">0 km</span>
                                 </div>
-                                <div style="height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;">
-                                    <div style="height: 100%; width: 100%; background: #555; border-radius: 6px;"></div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                    <span style="font-weight: 700; color: #e94560;">Intelligent System Routing</span>
-                                    <span style="font-weight: 900; color: #e94560;" id="ui-opt-dist">0 km</span>
-                                </div>
-                                <div style="height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;">
-                                    <div id="ui-opt-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #e94560, #ff6b81); border-radius: 6px; box-shadow: 0 0 15px rgba(233, 69, 96, 0.5); transition: width 1.5s cubic-bezier(0.19, 1, 0.22, 1);"></div>
+                                <div style="height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+                                    <div id="ui-opt-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #e94560, #ff6b81); border-radius: 4px; transition: width 1.5s cubic-bezier(0.19,1,0.22,1);"></div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="verdict-box" style="margin-top: 0; background: rgba(0,0,0,0.2); box-shadow: none; border-left-color: #2ecc71; position:relative; z-index:1;">
-                            <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 1.1rem; color: #2ecc71;">Analysis Report</h4>
-                            <p id="dijkstra-verdict" style="font-size: 0.95rem; opacity: 0.9; line-height: 1.6;">
-                                System is currently awaiting active consignment data...
-                            </p>
-                            <div style="margin-top: 20px; text-align: center;">
-                                <button onclick="document.getElementById('detailed-breakdown').style.display='block'" style="background: rgba(233, 69, 96, 0.1); color: #e94560; padding: 10px 20px; border-radius: 30px; font-weight: 700; border: 1px solid rgba(233, 69, 96, 0.3); font-size: 0.85rem; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" onmouseover="this.style.background='rgba(233, 69, 96, 0.2)'" onmouseout="this.style.background='rgba(233, 69, 96, 0.1)'">
-                                    Expand Shipment Efficiency Breakdown
-                                </button>
+                        <!-- Analysis Report -->
+                        <div style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-left: 4px solid #2ecc71;">
+                            <h4 style="margin: 0 0 12px 0; color: #1a1a2e; font-size: 0.95rem;">Analysis Report</h4>
+                            <p id="dijkstra-verdict" style="font-size: 0.88rem; color: #555; line-height: 1.7; margin: 0;">System awaiting active consignment data...</p>
+                            <div style="margin-top: 16px;">
+                                <button onclick="document.getElementById('detailed-breakdown').style.display='block'" style="background: rgba(233,69,96,0.08); color: #e94560; padding: 8px 16px; border-radius: 20px; font-weight: 700; border: 1px solid rgba(233,69,96,0.2); font-size: 0.8rem; cursor: pointer;">Expand Breakdown</button>
                             </div>
                         </div>
-                        
-                        <div id="detailed-breakdown" style="display: none; margin-top: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; position:relative; z-index:1;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">
-                                <h4 style="margin: 0; font-size: 1.1rem; color: #fff;">Consignment Granular Efficiency</h4>
+
+                        <!-- Detailed Breakdown (hidden) -->
+                        <div id="detailed-breakdown" style="display: none; background: #1a1a2e; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 16px;">
+                                <h4 style="margin: 0; font-size: 1rem; color: #fff;">Consignment Efficiency</h4>
                                 <button onclick="document.getElementById('detailed-breakdown').style.display='none'" style="background:transparent; border:none; color:#888; cursor:pointer; font-size: 1.2rem;">&times;</button>
                             </div>
-                            <div id="granular-list">
-                                <!-- Populated dynamically -->
-                            </div>
+                            <div id="granular-list"></div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -194,7 +256,15 @@
         document.getElementById('user-name-display').innerText = decodeURIComponent(user);
 
         // 2. DATA BRIDGE & DYNAMIC UPDATES
-        const pending = JSON.parse(localStorage.getItem('pending_shipments'));
+        // Sanitize localStorage: filter out any corrupt entries (old timestamp IDs > 1 million)
+        let rawPending = JSON.parse(localStorage.getItem('pending_shipments')) || [];
+        const sanitized = rawPending.filter(s => typeof s.id === 'number' && s.id > 0 && s.id < 1000000);
+        if (sanitized.length !== rawPending.length) {
+            // Corrupted entries found - clean them out
+            localStorage.setItem('pending_shipments', JSON.stringify(sanitized));
+            console.warn(`[Queue Cleanup] Removed ${rawPending.length - sanitized.length} corrupt entries.`);
+        }
+        const pending = sanitized;
         
         async function fetchOptimization(shipments) {
             try {
@@ -238,6 +308,18 @@
                     });
                     
                     document.getElementById('dijkstra-verdict').innerHTML = logisticsData.verdict;
+                    
+                    // Bind the route distances to the pending_shipments in memory so drivers can calculate time/profit
+                    let livePending = JSON.parse(localStorage.getItem('pending_shipments')) || [];
+                    if (logisticsData.route_details) {
+                        livePending.forEach(p => {
+                            let match = logisticsData.route_details.find(r => r.destination.trim().toLowerCase() === (p.dest || "").trim().toLowerCase());
+                            if (match) {
+                                p.distance = match.optimized_km;
+                            }
+                        });
+                        localStorage.setItem('pending_shipments', JSON.stringify(livePending));
+                    }
                 } else {
                     tableBody.innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>Current dispatch queue is empty.</td></tr>";
                 }
@@ -256,28 +338,66 @@
                     if(bar) bar.style.width = percentage + "%";
                 }, 100);
 
-                // Map the detailed breakdown
+                // === NETWORK MAP: HIGHLIGHT ACTIVE ROUTE ===
+                // Always build path data and store globally — map may not be open yet
+                if (logisticsData.route_details) {
+                    let allPathNodes = new Set(['Noida']);
+                    let allPathEdges = [];
+                    let allDestinations = new Set();
+                    
+                    logisticsData.route_details.forEach(route => {
+                        if (route.path) {
+                            const nodeSeq = route.path.split(' -> ').map(n => n.trim());
+                            nodeSeq.forEach(n => allPathNodes.add(n));
+                            // Last node in sequence = final destination
+                            allDestinations.add(nodeSeq[nodeSeq.length - 1]);
+                            for (let i = 0; i < nodeSeq.length - 1; i++) {
+                                allPathEdges.push(nodeSeq[i] + '_' + nodeSeq[i+1]);
+                                allPathEdges.push(nodeSeq[i+1] + '_' + nodeSeq[i]);
+                            }
+                        }
+                    });
+                    
+                    // Cache for when the map tab is opened later
+                    window.lastPathNodes = allPathNodes;
+                    window.lastPathEdges = allPathEdges;
+                    window.lastDestinations = allDestinations;
+                    
+                    // Apply immediately if map is already open
+                    if (window.cyMap) highlightPath(allPathNodes, allPathEdges, allDestinations);
+                }
+
+                // Build the breakdown cards — clean text, one "Show on Map" button per consignment
                 const granularList = document.getElementById('granular-list');
                 if (granularList && logisticsData.route_details) {
                     granularList.innerHTML = "";
-                    logisticsData.route_details.forEach(route => {
+                    // Store route details globally so the button handler can access them
+                    window.storedRouteDetails = logisticsData.route_details;
+
+                    logisticsData.route_details.forEach((route, idx) => {
                         granularList.innerHTML += `
-                        <div style="margin-bottom: 20px; background: rgba(0,0,0,0.15); padding: 15px; border-radius: 12px; border-left: 3px solid #e94560;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">To ${route.destination}</span>
-                                <span style="color: #2ecc71; font-weight: 600;">₹${route.savings.toFixed(2)} Saved</span>
+                        <div style="margin-bottom: 16px; background: rgba(0,0,0,0.18); border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); padding: 16px 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span style="font-weight: 800; color: #fff; font-size: 1rem;">📦 To ${route.destination}</span>
+                                <span style="color: #2ecc71; font-weight: 700; font-size: 0.9rem;">₹${route.savings.toFixed(2)} Saved</span>
                             </div>
-                            <div style="color: #aaa; font-size: 0.9rem; margin-bottom: 8px;">
-                                <span style="text-decoration: line-through; opacity: 0.6; margin-right: 15px;">Manual: ${route.manual_km.toFixed(1)} km</span>
-                                <span style="color: #fff; font-weight: 500;">Optimized: ${route.optimized_km.toFixed(1)} km</span>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 0.82rem;">
+                                <span style="text-decoration: line-through; opacity: 0.5; color: #aaa;">Manual: ${route.manual_km.toFixed(1)} km</span>
+                                <span style="color: #e94560; font-weight: 700;">→ Optimized: ${route.optimized_km.toFixed(1)} km</span>
                             </div>
-                            <div style="font-size: 0.85rem; color: #888; font-family: monospace; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
+                            <div style="font-size: 0.8rem; color: #94a3b8; font-family: monospace; padding: 8px 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px; overflow-x: auto; white-space: nowrap;">
                                 ${route.path}
                             </div>
-                        </div>
-                        `;
+                            <button onclick="focusRouteOnMap(${idx})"
+                                style="background: linear-gradient(135deg, #1e3a5f, #16213e); color: #94d1ff; border: 1px solid rgba(100,180,255,0.25); padding: 8px 18px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s;"
+                                onmouseover="this.style.background='#1a4a80'; this.style.color='#fff';"
+                                onmouseout="this.style.background='linear-gradient(135deg,#1e3a5f,#16213e)'; this.style.color='#94d1ff';">
+                                🗺️ Show on Map
+                            </button>
+                        </div>`;
                     });
                 }
+
 
                 // Fleet Injection Logic
                 const fleetBody = document.getElementById('fleet-table-body');
@@ -286,10 +406,16 @@
                 if (logisticsData.fleet_status && logisticsData.fleet_status.length > 0) {
                     logisticsData.fleet_status.forEach(t => {
                         const statusLabel = t.isAvailable ? '<span class="tag" style="background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9;">IDLE AT NOIDA HUB</span>' : '<span class="tag" style="background:#fff3e0; color:#ef6c00; border:1px solid #ffe0b2;">DISPATCHED ALONG ROUTE</span>';
+                        let driverLabel = '<span style="color:#aaa; font-style:italic;">Unassigned</span>';
+                        if(t.driver_name !== "Unassigned") {
+                            driverLabel = `<span style="font-weight:600; color:#0ea5e9;">${t.driver_name}</span> <span style="font-size:0.8rem; color:#888;">(${t.driver_license})</span>`;
+                        }
+                        
                         if (fleetBody) fleetBody.innerHTML += `
                             <tr>
                                 <td style="font-weight: 700; color: #444;">TRUCK ASSET #${t.id}</td>
                                 <td>${t.capacity} kg Capacity Limit</td>
+                                <td>${driverLabel}</td>
                                 <td>${statusLabel}</td>
                             </tr>
                         `;
@@ -297,15 +423,30 @@
                 }
             } catch (err) {
                 console.error("Optimization failed:", err);
-                document.getElementById('dijkstra-verdict').innerHTML = "Server connection refused or backend API error.";
-                document.getElementById('allocation-table-body').innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: red;'>Could not connect to C++ Base System. Is ./app running?</td></tr>";
+                // Show a visible error badge on the dashboard
+                const errBadge = document.getElementById('backend-status');
+                if (errBadge) {
+                    errBadge.style.background = '#ffebee';
+                    errBadge.style.color = '#c62828';
+                    errBadge.innerText = '⚠ API ERROR — Check ./app console';
+                }
+                const tableBody = document.getElementById('allocation-table-body');
+                if (tableBody) tableBody.innerHTML = `<tr><td colspan='5' style='padding: 30px; text-align: center; color: #e94560; font-weight:600;'>⚠ Could not connect to backend. Is ./app running? (${err.message})</td></tr>`;
             }
         }
 
         if (pending && pending.length > 0) {
             fetchOptimization(pending);
         } else {
-            document.getElementById('allocation-table-body').innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>No pending data. Initialize via Entry Portal.</td></tr>";
+            fetchOptimization([]);
+        }
+
+        function clearQueue() {
+            if(!confirm('Clear all pending shipments from the live queue?')) return;
+            localStorage.removeItem('pending_shipments');
+            localStorage.removeItem('shipment_counter');
+            fetchOptimization([]);
+            renderCompletedLedger();
         }
 
         // 3. NAVIGATION CONTROLS
@@ -318,6 +459,386 @@
                 document.getElementById(item.getAttribute('data-target')).style.display = 'block';
             });
         });
+
+        // 4. SHIPMENT ENTRY LOGIC
+        function addRow() {
+            const container = document.getElementById('shipment-list');
+            const row = document.createElement('div');
+            row.className = 'shipment-row';
+            row.style.cssText = "display: flex; gap: 12px; margin-bottom: 15px; background: #fcfcfc; padding: 15px; border-radius: 12px; border: 1px solid #eee; align-items: center;";
+            row.innerHTML = `
+                <input type="number" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                <input type="number" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                <input type="text" placeholder="Destination" class="d-in" style="flex:2; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+            `;
+            container.appendChild(row);
+        }
+
+        function runOptimizationFromDash() {
+            const weights = document.querySelectorAll('.w-in');
+            const volumes = document.querySelectorAll('.v-in');
+            const dests = document.querySelectorAll('.d-in');
+            
+            // Load existing pending shipments so we don't overwrite them
+            let existing = JSON.parse(localStorage.getItem('pending_shipments')) || [];
+            
+            // Use a persistent sequential counter so IDs are always small valid ints
+            let nextId = parseInt(localStorage.getItem('shipment_counter') || '0') + 1;
+            
+            const dispatchDateStr = new Date().toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+            
+            let newEntries = [];
+            weights.forEach((w, i) => {
+                if(w.value && dests[i].value) {
+                    newEntries.push({ 
+                        id: nextId++,
+                        weight: parseFloat(w.value),
+                        volume: parseFloat(volumes[i].value) || 0,
+                        dest: dests[i].value.trim(),
+                        dispatch_date: dispatchDateStr
+                    });
+                }
+            });
+
+            if(newEntries.length === 0) {
+                alert("Please enter shipment details and destination.");
+                return;
+            }
+
+            // Save updated sequential counter back to storage
+            localStorage.setItem('shipment_counter', String(nextId - 1));
+
+            // MERGE new entries with existing live shipments
+            const merged = [...existing, ...newEntries];
+            localStorage.setItem('pending_shipments', JSON.stringify(merged));
+            
+            // Execute the fetch with the full merged queue
+            fetchOptimization(merged);
+            
+            // Programmatically click back to Operations Dashboard
+            const opsTab = document.querySelector('.nav-item[data-target="warehouse-view"]');
+            if (opsTab) opsTab.click();
+            
+            renderCompletedLedger();
+            
+            // Reset the form to a clean single row
+            document.getElementById('shipment-list').innerHTML = `
+                <div class="shipment-row" style="display: flex; gap: 12px; margin-bottom: 15px; background: #fcfcfc; padding: 15px; border-radius: 12px; border: 1px solid #eee; align-items: center;">
+                    <input type="number" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                    <input type="number" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                    <input type="text" placeholder="Destination (e.g., Mumbai, Pune, Agra)" class="d-in" style="flex:2; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                </div>`;
+        }
+
+        // Render Ledger Logic
+        function renderCompletedLedger() {
+            const completed = JSON.parse(localStorage.getItem('completed_shipments')) || [];
+            const tbody = document.getElementById('completed-ledger-body');
+            
+            if (completed.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='5' style='padding: 50px; text-align: center; color: #aaa; font-style: italic;'>No completed consignments historical data found.</td></tr>";
+                return;
+            }
+            tbody.innerHTML = "";
+            let totalProfit = 0;
+            
+            completed.forEach(c => {
+                totalProfit += c.profit || 0;
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight: 700; color: #1a1a2e;">#CON-0${c.id}</td>
+                        <td style="color: #666; font-size: 0.9rem;">${c.dispatch_date || 'N/A'}</td>
+                        <td style="color: #666; font-size: 0.9rem; font-weight: 600;">${c.completion_date || 'N/A'}</td>
+                        <td style="color: #666; font-size: 0.9rem;">${c.est_time || 'N/A'}</td>
+                        <td style="font-weight: 700; color: #27ae60;">+ ₹${(c.profit || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('ledger-total-profit').innerText = "₹" + totalProfit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        
+        renderCompletedLedger();    
+
+        // Auto-switch based on role
+        if (role === 'driver') {
+            const driverTab = document.querySelector('.nav-item[data-target="driver-view"]');
+            if (driverTab) driverTab.click();
+        }
+
+        // ============================================================
+        // NETWORK MAP — Cytoscape.js Graph Engine
+        // ============================================================
+        function initNetworkMap() {
+            if (window.cyMap) return; // already initialized
+
+            const nodes = [
+                // North / Himalayan
+                { id: 'Dehradun',      x: 350, y: 60  },
+                { id: 'Chandigarh',    x: 230, y: 90  },
+                { id: 'Amritsar',      x: 100, y: 80  },
+                { id: 'Ludhiana',      x: 160, y: 115 },
+                // NCR
+                { id: 'Delhi',         x: 280, y: 185 },
+                { id: 'Noida',         x: 320, y: 200 },
+                // Rajasthan
+                { id: 'Jaipur',        x: 210, y: 285 },
+                { id: 'Jodhpur',       x: 120, y: 330 },
+                // UP / Bihar
+                { id: 'Agra',          x: 330, y: 280 },
+                { id: 'Gwalior',       x: 340, y: 320 },
+                { id: 'Lucknow',       x: 450, y: 240 },
+                { id: 'Kanpur',        x: 420, y: 280 },
+                { id: 'Prayagraj',     x: 470, y: 300 },
+                { id: 'Varanasi',      x: 510, y: 290 },
+                { id: 'Patna',         x: 570, y: 250 },
+                // MP / Central
+                { id: 'Bhopal',        x: 310, y: 390 },
+                { id: 'Indore',        x: 240, y: 400 },
+                { id: 'Nagpur',        x: 390, y: 430 },
+                // Gujarat
+                { id: 'Ahmedabad',     x: 140, y: 415 },
+                { id: 'Surat',         x: 155, y: 470 },
+                // Maharashtra
+                { id: 'Mumbai',        x: 165, y: 530 },
+                { id: 'Nashik',        x: 205, y: 490 },
+                { id: 'Pune',          x: 210, y: 555 },
+                // East
+                { id: 'Kolkata',       x: 640, y: 310 },
+                { id: 'Bhubaneswar',   x: 590, y: 390 },
+                // Deccan / AP / Telangana
+                { id: 'Hyderabad',     x: 390, y: 510 },
+                { id: 'Vijayawada',    x: 480, y: 520 },
+                { id: 'Visakhapatnam',x: 545, y: 460 },
+                // South
+                { id: 'Goa',           x: 200, y: 620 },
+                { id: 'Bangalore',     x: 320, y: 640 },
+                { id: 'Mysore',        x: 285, y: 670 },
+                { id: 'Chennai',       x: 460, y: 595 },
+                { id: 'Madurai',       x: 400, y: 670 },
+                { id: 'Coimbatore',    x: 330, y: 690 },
+                { id: 'Kochi',         x: 275, y: 720 },
+                { id: 'Trivandrum',    x: 295, y: 760 },
+            ];
+
+            const edges = [
+                ['Dehradun','Noida'], ['Dehradun','Chandigarh'],
+                ['Chandigarh','Delhi'], ['Chandigarh','Amritsar'],
+                ['Amritsar','Ludhiana'], ['Amritsar','Delhi'],
+                ['Ludhiana','Delhi'],
+                ['Noida','Delhi'], ['Noida','Agra'], ['Noida','Jaipur'], ['Noida','Lucknow'],
+                ['Delhi','Jaipur'], ['Delhi','Lucknow'], ['Delhi','Agra'],
+                ['Jaipur','Agra'], ['Jaipur','Ahmedabad'], ['Jaipur','Jodhpur'],
+                ['Jodhpur','Ahmedabad'],
+                ['Agra','Lucknow'], ['Agra','Gwalior'],
+                ['Gwalior','Bhopal'],
+                ['Bhopal','Nagpur'], ['Bhopal','Indore'],
+                ['Indore','Ahmedabad'], ['Indore','Mumbai'], ['Indore','Nagpur'],
+                ['Lucknow','Varanasi'], ['Lucknow','Kanpur'],
+                ['Kanpur','Prayagraj'],
+                ['Prayagraj','Varanasi'],
+                ['Varanasi','Patna'], ['Varanasi','Kolkata'],
+                ['Patna','Kolkata'],
+                ['Ahmedabad','Mumbai'], ['Ahmedabad','Surat'],
+                ['Surat','Mumbai'],
+                ['Mumbai','Pune'], ['Mumbai','Nashik'], ['Mumbai','Bangalore'],
+                ['Nashik','Pune'],
+                ['Nagpur','Hyderabad'], ['Nagpur','Kolkata'],
+                ['Pune','Hyderabad'], ['Pune','Goa'],
+                ['Goa','Bangalore'],
+                ['Hyderabad','Bangalore'], ['Hyderabad','Vijayawada'],
+                ['Vijayawada','Chennai'], ['Vijayawada','Visakhapatnam'],
+                ['Visakhapatnam','Kolkata'],
+                ['Kolkata','Bhubaneswar'], ['Bhubaneswar','Visakhapatnam'],
+                ['Kolkata','Chennai'],
+                ['Bangalore','Chennai'], ['Bangalore','Mysore'],
+                ['Chennai','Madurai'],
+                ['Madurai','Coimbatore'],
+                ['Coimbatore','Bangalore'], ['Coimbatore','Kochi'],
+                ['Mysore','Coimbatore'],
+                ['Kochi','Trivandrum'],
+            ];
+
+            const cyElements = [];
+            nodes.forEach(n => {
+                cyElements.push({ data: { id: n.id, label: n.id }, position: { x: n.x * 1.35, y: n.y * 1.35 } });
+            });
+            edges.forEach(([s, t]) => {
+                const edgeId = s + '_' + t;
+                cyElements.push({ data: { id: edgeId, source: s, target: t } });
+            });
+
+            window.cyMap = cytoscape({
+                container: document.getElementById('cy-map'),
+                elements: cyElements,
+                userZoomingEnabled: true,
+                userPanningEnabled: true,
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': '#1e3a5f',
+                            'border-color': '#334155',
+                            'border-width': 2,
+                            'label': 'data(label)',
+                            'color': '#94a3b8',
+                            'font-size': '9px',
+                            'font-weight': '600',
+                            'text-valign': 'bottom',
+                            'text-halign': 'center',
+                            'text-margin-y': 4,
+                            'width': 18,
+                            'height': 18,
+                        }
+                    },
+                    {
+                        selector: 'node.origin',
+                        style: {
+                            'background-color': '#2ecc71',
+                            'border-color': '#27ae60',
+                            'border-width': 3,
+                            'color': '#fff',
+                            'width': 26, 'height': 26,
+                        }
+                    },
+                    {
+                        selector: 'node.active',
+                        style: {
+                            'background-color': '#e94560',
+                            'border-color': '#c72c41',
+                            'border-width': 3,
+                            'color': '#fff',
+                            'width': 22, 'height': 22,
+                        }
+                    },
+                    {
+                        selector: 'node.destination',
+                        style: {
+                            'background-color': '#f59e0b',
+                            'border-color': '#d97706',
+                            'border-width': 4,
+                            'color': '#fff',
+                            'font-weight': '800',
+                            'width': 28, 'height': 28,
+                            'shadow-blur': 20,
+                            'shadow-color': '#f59e0b',
+                            'shadow-opacity': 0.9,
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 1.5,
+                            'line-color': '#1e3a5f',
+                            'curve-style': 'bezier',
+                            'opacity': 0.6
+                        }
+                    },
+                    {
+                        selector: 'edge.active-path',
+                        style: {
+                            'width': 4,
+                            'line-color': '#e94560',
+                            'opacity': 1,
+                            'line-style': 'solid',
+                            'shadow-blur': 16,
+                            'shadow-color': '#e94560',
+                            'shadow-opacity': 0.85,
+                        }
+                    }
+                ],
+                layout: { name: 'preset' }
+            });
+
+            // Tooltip on hover
+            window.cyMap.on('mouseover', 'node', evt => {
+                const n = evt.target;
+                document.getElementById('map-status').innerText = n.id() + ' — ' + n.connectedEdges().length + ' connections';
+            });
+            window.cyMap.on('mouseout', 'node', () => {
+                document.getElementById('map-status').innerText = '30 nodes · 120+ edges';
+            });
+
+            // Mark Noida as origin
+            window.cyMap.$('#Noida').addClass('origin');
+
+            // Reapply cached route highlight if a dispatch was already processed
+            if (window.lastPathNodes && window.lastPathEdges) {
+                highlightPath(window.lastPathNodes, window.lastPathEdges, window.lastDestinations || new Set());
+            }
+        }
+
+        function highlightPath(activeNodes, activeEdgeIds, destinations = new Set()) {
+            if (!window.cyMap) return;
+            // Reset all city nodes & edges
+            window.cyMap.nodes().removeClass('active origin destination');
+            window.cyMap.edges().removeClass('active-path');
+
+            // Re-mark origin
+            window.cyMap.$('#Noida').addClass('origin');
+
+            // Mark waypoints (intermediate) in red
+            activeNodes.forEach(nid => {
+                if (nid !== 'Noida' && !destinations.has(nid)) {
+                    window.cyMap.$('#' + nid).addClass('active');
+                }
+            });
+
+            // Mark final destinations in glowing amber
+            destinations.forEach(nid => {
+                window.cyMap.$('#' + nid).addClass('destination');
+            });
+
+            // Highlight edges along the path
+            activeEdgeIds.forEach(eid => {
+                window.cyMap.$('#' + eid).addClass('active-path');
+            });
+        }
+
+        // Initialize map when the Network Analytics tab is opened
+        document.querySelectorAll('.nav-item').forEach(item => {
+            if (item.getAttribute('data-target') === 'route-view') {
+                item.addEventListener('click', () => {
+                    setTimeout(initNetworkMap, 100);
+                });
+            }
+        });
+
+        // "Show on Map" handler — navigates to Network Analytics and focuses one route
+        function focusRouteOnMap(idx) {
+            const route = window.storedRouteDetails && window.storedRouteDetails[idx];
+            if (!route) return;
+
+            const pathNodes = route.path.split(' -> ').map(n => n.trim());
+            const dest = pathNodes[pathNodes.length - 1];
+
+            const singleNodes = new Set(pathNodes);
+            const singleEdges = [];
+            const singleDests = new Set([dest]);
+
+            for (let i = 0; i < pathNodes.length - 1; i++) {
+                singleEdges.push(pathNodes[i] + '_' + pathNodes[i + 1]);
+                singleEdges.push(pathNodes[i + 1] + '_' + pathNodes[i]);
+            }
+
+            // Switch to the Network Analytics tab
+            const mapTab = document.querySelector('.nav-item[data-target="route-view"]');
+            if (mapTab) mapTab.click();
+
+            // Show a label in the map status bar
+            setTimeout(() => {
+                const statusEl = document.getElementById('map-status');
+                if (statusEl) statusEl.innerText = `Focused: Noida → ${dest}`;
+
+                // Init map if needed, then highlight
+                initNetworkMap();
+                setTimeout(() => highlightPath(singleNodes, singleEdges, singleDests), 120);
+            }, 110);
+        }
+
     </script>
 </body>
 </html>

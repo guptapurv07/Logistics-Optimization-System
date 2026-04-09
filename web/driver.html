@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Portal | Logistics ERP</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: var(--bg-light, #f4f7f6); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text-main, #333); margin: 0; min-height: 100vh; }
+        .driver-container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid rgba(0,0,0,0.05); padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { margin: 0; font-size: 2rem; color: var(--primary-dark, #1a1a2e); letter-spacing: -0.5px; }
+        .header p { margin: 5px 0 0 0; color: var(--text-muted, #777); font-size: 0.95rem; }
+        
+        .driver-profile { display: flex; align-items: center; gap: 15px; }
+        .avatar { width: 45px; height: 45px; background: var(--accent-red, #e94560); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        
+        .card { background: white; border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .card-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted, #777); margin-bottom: 15px; font-weight: 600; display: flex; justify-content: space-between; }
+        
+        .data-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .data-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .d-label { color: var(--text-muted, #777); font-weight: 500; }
+        .d-value { font-weight: 700; color: var(--primary-dark, #1a1a2e); }
+        
+        .status-badge { padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; }
+        .status-idle { background: rgba(234, 179, 8, 0.15); color: #b45309; border: 1px solid rgba(234, 179, 8, 0.3); }
+        .status-active { background: rgba(39, 174, 96, 0.15); color: var(--success-green, #27ae60); border: 1px solid rgba(39, 174, 96, 0.3); }
+        
+        .shipment-card { background: linear-gradient(135deg, var(--sidebar-bg, #16213e) 0%, var(--primary-dark, #1a1a2e) 100%); color: white; position: relative; overflow: hidden; border-color: var(--accent-red, #e94560); }
+        .shipment-card::before { content: ""; position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: var(--accent-glow, rgba(233, 69, 96, 0.3)); border-radius: 50%; filter: blur(30px); }
+        .shipment-card .card-title { color: #fff; }
+        .shipment-card .d-label, .shipment-card .time-info { color: #aaa; }
+        .shipment-card .d-value { color: #fff; }
+        
+        .dest-banner { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 10px 0; }
+        .path-line { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 20px 0; position: relative; }
+        .path-progress { position: absolute; top:0; left:0; height:100%; border-radius:2px; background: var(--accent-red, #e94560); width: 50%; box-shadow: 0 0 10px var(--accent-glow, rgba(233, 69, 96, 0.3)); }
+        
+        .btn-action { width: 100%; padding: 16px; background: var(--accent-red, #e94560); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; margin-top: 15px; }
+        .btn-action:hover { background: #c72c41; box-shadow: 0 5px 15px var(--accent-glow, rgba(233, 69, 96, 0.4)); }
+        
+        .btn-logout { background: transparent; border: 1px solid var(--accent-red, #e94560); color: var(--accent-red, #e94560); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-logout:hover { background: var(--accent-glow, rgba(233, 69, 96, 0.1)); }
+    </style>
+</head>
+<body>
+    <div class="driver-container">
+        <header class="header">
+            <div>
+                <h1>Fleet Operator Dashboard</h1>
+                <p>Welcome back, <span id="dr-name" style="color: var(--primary-dark, #1a1a2e); font-weight:600;">System</span></p>
+            </div>
+            <div class="driver-profile">
+                <button class="btn-logout" onclick="window.location.href='login.html'">Sign Out</button>
+                <div class="avatar">D</div>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Asset Context -->
+            <div class="card">
+                <div class="card-title">Assigned Asset Details</div>
+                <div class="data-row">
+                    <span class="d-label">Vehicle ID</span>
+                    <span class="d-value" id="dr-vehicle">Loading...</span>
+                </div>
+                <div class="data-row">
+                    <span class="d-label">Payload Capacity</span>
+                    <span class="d-value" id="dr-capacity">Loading...</span>
+                </div>
+                <div class="data-row">
+                    <span class="d-label">License Registry</span>
+                    <span class="d-value" id="dr-license">DL-9901</span>
+                </div>
+            </div>
+
+            <!-- Warehouse Assignment -->
+            <div class="card">
+                <div class="card-title">Operational Base</div>
+                <div class="data-row">
+                    <span class="d-label">Hub Name</span>
+                    <span class="d-value">Noida Regional Hub</span>
+                </div>
+                <div class="data-row">
+                    <span class="d-label">Zone Location</span>
+                    <span class="d-value">Sector 62, UP</span>
+                </div>
+                <div class="data-row">
+                    <span class="d-label">Manager on Duty</span>
+                    <span class="d-value">Auth. System Admin</span>
+                </div>
+            </div>
+            
+            <!-- Current Status Overview -->
+            <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                <div class="card-title" style="align-self: flex-start;">Current Status</div>
+                <div id="status-tag" class="status-badge status-active" style="margin-bottom: 15px; font-size: 1.1rem; padding: 10px 24px;">ACTIVE DISPATCH</div>
+                <p id="status-desc" style="color: var(--text-muted, #777); font-size: 0.9rem; margin:0;">You are currently executing a delivery run.</p>
+            </div>
+        </div>
+
+        <!-- Dynamic Shipment Context Box -->
+        <div id="active-shipment-panel" class="card shipment-card">
+            <div class="card-title">
+                <span class="status-badge status-active" style="display: inline-block;">IN TRANSIT</span>
+                <span>Consignment #CON-034</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px;">
+                <div>
+                    <span style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Heading to</span>
+                    <div class="dest-banner" id="sh-dest">Mumbai Logistics Hub</div>
+                </div>
+                <div style="text-align: right;">
+                    <span style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Total Load</span>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #fff;" id="sh-load">2800 kg</div>
+                </div>
+            </div>
+            
+            <div class="path-line">
+                <div class="path-progress" id="progress-bar"></div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 0.85rem; font-weight: 600;">
+                <span>Origin: Noida</span>
+                <span>Calculating ETA...</span>
+            </div>
+            
+            <button class="btn-action" onclick="completeDelivery()">Confirm Safe Delivery</button>
+        </div>
+
+        <div id="idle-panel" class="card" style="display: none; text-align: center; padding: 60px 20px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">☕</div>
+            <h2 style="margin: 0 0 10px 0; color: var(--primary-dark, #1a1a2e);">You are on Standby</h2>
+            <p style="color: var(--text-muted, #777); max-width: 400px; margin: 0 auto;">No active shipments assigned. Please stay parked at the Noida hub until the operations dashboard allocates a consignment to your vehicle.</p>
+        </div>
+
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const user = urlParams.get('user') || 'Driver';
+        document.getElementById('dr-name').innerText = decodeURIComponent(user);
+        
+        // Fetch specific asset mapping from API
+        async function loadDriverProfile() {
+            try {
+                const response = await fetch('/api/optimize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ shipments: [] })
+                });
+                
+                const data = await response.json();
+                if (data.fleet_status) {
+                    const myAsset = data.fleet_status.find(t => t.driver_name === user);
+                    if (myAsset) {
+                        document.getElementById('dr-vehicle').innerText = 'TRK-' + myAsset.id;
+                        document.getElementById('dr-capacity').innerText = myAsset.capacity + ' kg';
+                        document.getElementById('dr-license').innerText = myAsset.driver_license;
+                    } else {
+                        document.getElementById('dr-vehicle').innerText = 'Unassigned';
+                        document.getElementById('dr-capacity').innerText = 'N/A';
+                        document.getElementById('dr-license').innerText = 'Unassigned';
+                    }
+                }
+            } catch(e) {
+                console.error("Failed to fetch profile", e);
+            }
+        }
+        
+        loadDriverProfile();
+
+        // Logic to simulate active vs idle shipment
+        function checkShipment() {
+            // Check local storage to see if an assignment happened (simulate backend connection for now)
+            const pending = JSON.parse(localStorage.getItem('pending_shipments'));
+            
+            if (pending && pending.length > 0) {
+                // Pick the first shipment as a fake assigned route
+                const s = pending[0];
+                document.getElementById('sh-dest').innerText = s.dest || 'Unspecified';
+                document.getElementById('sh-load').innerText = (s.weight || 0) + ' kg';
+                
+                document.getElementById('active-shipment-panel').style.display = 'block';
+                document.getElementById('idle-panel').style.display = 'none';
+                
+                document.getElementById('status-tag').className = 'status-badge status-active';
+                document.getElementById('status-tag').innerText = 'EN ROUTE';
+                document.getElementById('status-desc').innerText = 'Executing delivery along designated path.';
+            } else {
+                document.getElementById('active-shipment-panel').style.display = 'none';
+                document.getElementById('idle-panel').style.display = 'block';
+                
+                document.getElementById('status-tag').className = 'status-badge status-idle';
+                document.getElementById('status-tag').innerText = 'IDLE';
+                document.getElementById('status-desc').innerText = 'Awaiting new allocation at Base.';
+            }
+        }
+        
+        function completeDelivery() {
+            // Move from pending to completed, processing the financial logic
+            let pending = JSON.parse(localStorage.getItem('pending_shipments')) || [];
+            let completed = JSON.parse(localStorage.getItem('completed_shipments')) || [];
+            
+            if (pending.length > 0) {
+                let finishedItem = pending.shift(); // Remove the finished one
+                
+                // Add Completion Timestamps
+                finishedItem.completion_date = new Date().toLocaleString('en-IN');
+                
+                // Calculate Profit: (Weight * ₹1.5) + (Distance * ₹10)
+                let dist = finishedItem.distance || 50; // Fallback to 50 if unknown
+                let weight = parseFloat(finishedItem.weight) || 0;
+                finishedItem.profit = (weight * 1.5) + (dist * 10);
+                
+                // Calculate Estimated Time (assume avg speed 50 km/h)
+                let hours = dist / 50.0;
+                let hrs = Math.floor(hours);
+                let mins = Math.round((hours - hrs) * 60);
+                finishedItem.est_time = `${hrs}h ${mins}m`;
+                
+                completed.push(finishedItem);
+                
+                localStorage.setItem('pending_shipments', JSON.stringify(pending));
+                localStorage.setItem('completed_shipments', JSON.stringify(completed));
+                
+                alert(`Delivery marked as complete! ₹${finishedItem.profit.toFixed(2)} added to the ledger.`);
+            } else {
+                alert('No active shipments to complete.');
+            }
+            
+            checkShipment();
+        }
+
+        // Init view
+        checkShipment();
+    </script>
+</body>
+</html>
