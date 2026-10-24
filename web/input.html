@@ -136,12 +136,17 @@
             const volumes = document.querySelectorAll('.v-in');
             const dests = document.querySelectorAll('.d-in');
             let data = [];
+            // Same ID rule as the dashboard: continue after the highest ID ever used, never reuse one
+            const pendingIds = (JSON.parse(localStorage.getItem('pending_shipments')) || []).map(s => s.id);
+            const completedIds = (JSON.parse(localStorage.getItem('completed_shipments')) || []).map(c => c.id);
+            const usedIds = [...pendingIds, ...completedIds].filter(id => Number.isInteger(id) && id > 0 && id < 1000000);
+            let nextId = Math.max(parseInt(localStorage.getItem('shipment_counter') || '0') || 0, ...usedIds) + 1;
             
             weights.forEach((w, i) => {
                 // We check for Weight and Destination. Distance is handled by C++ Backend.
                 if(w.value && dests[i].value) {
                     data.push({ 
-                        id: i + 1, 
+                        id: nextId++, 
                         weight: w.value, 
                         volume: volumes[i].value || 0,
                         dest: dests[i].value 
@@ -155,6 +160,7 @@
             }
 
             // Sync with LocalStorage for the Dashboard bridge
+            localStorage.setItem('shipment_counter', String(nextId - 1));
             localStorage.setItem('pending_shipments', JSON.stringify(data));
             
             // Redirect to dashboard

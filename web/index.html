@@ -53,8 +53,8 @@
                 <div class="results-section" style="margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
                     <div id="shipment-list">
                         <div class="shipment-row" style="display: flex; gap: 12px; margin-bottom: 15px; background: #fcfcfc; padding: 15px; border-radius: 12px; border: 1px solid #eee; align-items: center;">
-                            <input type="number" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
-                            <input type="number" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                            <input type="number" min="0" step="any" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                            <input type="number" min="0" step="any" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
                             <input type="text" placeholder="Destination (e.g., Mumbai, Pune, Agra)" class="d-in" style="flex:2; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
                         </div>
                     </div>
@@ -266,6 +266,19 @@
         }
         const pending = sanitized;
         
+        // Labels for shipments the server skipped because of bad data
+        const shipmentIssueLabels = {
+            invalid_shipment: 'INVALID RECORD',
+            invalid_id: 'INVALID ID',
+            duplicate_id: 'DUPLICATE ID',
+            invalid_weight: 'INVALID WEIGHT',
+            invalid_volume: 'INVALID VOLUME',
+            missing_destination: 'NO DESTINATION',
+            invalid_destination: 'INVALID DESTINATION',
+            unknown_city: 'UNKNOWN CITY',
+            hub_destination: 'DESTINATION IS HUB'
+        };
+
         async function fetchOptimization(shipments) {
             try {
                 const response = await fetch('/api/optimize', {
@@ -294,14 +307,20 @@
 
                 if (logisticsData.assignments && logisticsData.assignments.length > 0) {
                     logisticsData.assignments.forEach(s => {
-                        const truckLabel = s.truck !== -1 ? 'TRUCK-' + s.truck : '<span style="color: #e94560;">NO TRUCK CAPACITY</span>';
-                        const dispatchLabel = s.truck !== -1 ? '<span class="tag">ACTIVE DISPATCH</span>' : '<span class="tag" style="background:#ffebee; color:#c62828;">PENDING RESOURCE</span>';
+                        let truckLabel = s.truck !== -1 ? 'TRUCK-' + s.truck : '<span style="color: #e94560;">NO TRUCK CAPACITY</span>';
+                        let dispatchLabel = s.truck !== -1 ? '<span class="tag">ACTIVE DISPATCH</span>' : '<span class="tag" style="background:#ffebee; color:#c62828;">PENDING RESOURCE</span>';
+
+                        // Shipments the server skipped because of bad data
+                        if (s.issue) {
+                            truckLabel = '<span style="color: #e94560;">NOT ASSIGNED</span>';
+                            dispatchLabel = `<span class="tag" style="background:#ffebee; color:#c62828;">${shipmentIssueLabels[s.issue] || 'INVALID DATA'}</span>`;
+                        }
 
                         tableBody.innerHTML += `
                             <tr>
-                                <td style="font-weight: 700; color: #1a1a2e;">#CON-0${s.shipment}</td>
-                                <td>${s.weight} kg</td>
-                                <td style="color: #666; font-weight: 500;">${s.dest || 'Regional Hub'}</td>
+                                <td style="font-weight: 700; color: #1a1a2e;">${s.shipment != null ? '#CON-0' + s.shipment : '—'}</td>
+                                <td>${s.weight != null ? s.weight + ' kg' : '—'}</td>
+                                <td style="color: #666; font-weight: 500;">${(s.dest || '').trim() || '—'}</td>
                                 <td><span style="font-weight: 600;">${truckLabel}</span></td>
                                 <td>${dispatchLabel}</td>
                             </tr>`;
@@ -316,6 +335,7 @@
                             let match = logisticsData.route_details.find(r => r.destination.trim().toLowerCase() === (p.dest || "").trim().toLowerCase());
                             if (match) {
                                 p.distance = match.optimized_km;
+                                p.dest = match.destination; // Use the map's spelling, e.g. "mumbai" -> "Mumbai"
                             }
                         });
                         localStorage.setItem('pending_shipments', JSON.stringify(livePending));
@@ -375,6 +395,10 @@
                     window.storedRouteDetails = logisticsData.route_details;
 
                     logisticsData.route_details.forEach((route, idx) => {
+                        // One line per road taken, e.g. "Noida → Jaipur · NH-48 Direct · 280 km"
+                        const legsHtml = (route.legs || []).map(leg =>
+                            `<div>${leg.from} → ${leg.to} · ${leg.road} · ${leg.km} km</div>`
+                        ).join('');
                         granularList.innerHTML += `
                         <div style="margin-bottom: 16px; background: rgba(0,0,0,0.18); border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); padding: 16px 20px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -387,6 +411,9 @@
                             </div>
                             <div style="font-size: 0.8rem; color: #94a3b8; font-family: monospace; padding: 8px 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px; overflow-x: auto; white-space: nowrap;">
                                 ${route.path}
+                            </div>
+                            <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.7; margin-bottom: 12px;">
+                                ${legsHtml}
                             </div>
                             <button onclick="focusRouteOnMap(${idx})"
                                 style="background: linear-gradient(135deg, #1e3a5f, #16213e); color: #94d1ff; border: 1px solid rgba(100,180,255,0.25); padding: 8px 18px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s;"
@@ -444,7 +471,7 @@
         function clearQueue() {
             if(!confirm('Clear all pending shipments from the live queue?')) return;
             localStorage.removeItem('pending_shipments');
-            localStorage.removeItem('shipment_counter');
+            // The ID counter is kept on purpose, so cleared IDs are never reused
             fetchOptimization([]);
             renderCompletedLedger();
         }
@@ -467,8 +494,8 @@
             row.className = 'shipment-row';
             row.style.cssText = "display: flex; gap: 12px; margin-bottom: 15px; background: #fcfcfc; padding: 15px; border-radius: 12px; border: 1px solid #eee; align-items: center;";
             row.innerHTML = `
-                <input type="number" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
-                <input type="number" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                <input type="number" min="0" step="any" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                <input type="number" min="0" step="any" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
                 <input type="text" placeholder="Destination" class="d-in" style="flex:2; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
             `;
             container.appendChild(row);
@@ -482,8 +509,11 @@
             // Load existing pending shipments so we don't overwrite them
             let existing = JSON.parse(localStorage.getItem('pending_shipments')) || [];
             
-            // Use a persistent sequential counter so IDs are always small valid ints
-            let nextId = parseInt(localStorage.getItem('shipment_counter') || '0') + 1;
+            // Use a persistent sequential counter so IDs are always small valid ints.
+            // Start above every ID already in the queue or the ledger, so no ID is ever given out twice
+            const completedIds = (JSON.parse(localStorage.getItem('completed_shipments')) || []).map(c => c.id);
+            const usedIds = [...existing.map(s => s.id), ...completedIds].filter(id => Number.isInteger(id) && id > 0 && id < 1000000);
+            let nextId = Math.max(parseInt(localStorage.getItem('shipment_counter') || '0') || 0, ...usedIds) + 1;
             
             const dispatchDateStr = new Date().toLocaleString('en-IN', {
                 day: '2-digit', month: 'short', year: 'numeric',
@@ -491,17 +521,40 @@
             });
             
             let newEntries = [];
+            let rowErrors = [];
             weights.forEach((w, i) => {
-                if(w.value && dests[i].value) {
+                const dest = dests[i].value.trim();
+                const row = `Row ${i + 1}`;
+                // Noida is where trucks start, so it can't be a delivery city
+                if (dest.toLowerCase() === 'noida') {
+                    rowErrors.push(`${row}: Noida is the dispatch hub. Enter a delivery city instead.`);
+                    return;
+                }
+                if(w.value && dest) {
+                    const weight = parseFloat(w.value);
+                    const volume = volumes[i].value === '' ? 0 : parseFloat(volumes[i].value);
+                    if (!(weight > 0)) {
+                        rowErrors.push(`${row}: weight must be more than 0 kg.`);
+                        return;
+                    }
+                    if (!(volume >= 0)) {
+                        rowErrors.push(`${row}: volume can't be negative.`);
+                        return;
+                    }
                     newEntries.push({ 
                         id: nextId++,
-                        weight: parseFloat(w.value),
-                        volume: parseFloat(volumes[i].value) || 0,
-                        dest: dests[i].value.trim(),
+                        weight: weight,
+                        volume: volume,
+                        dest: dest,
                         dispatch_date: dispatchDateStr
                     });
                 }
             });
+
+            if (rowErrors.length > 0) {
+                alert("Please fix these rows first:\n" + rowErrors.join("\n"));
+                return;
+            }
 
             if(newEntries.length === 0) {
                 alert("Please enter shipment details and destination.");
@@ -527,8 +580,8 @@
             // Reset the form to a clean single row
             document.getElementById('shipment-list').innerHTML = `
                 <div class="shipment-row" style="display: flex; gap: 12px; margin-bottom: 15px; background: #fcfcfc; padding: 15px; border-radius: 12px; border: 1px solid #eee; align-items: center;">
-                    <input type="number" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
-                    <input type="number" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                    <input type="number" min="0" step="any" placeholder="Weight (kg)" class="w-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
+                    <input type="number" min="0" step="any" placeholder="Volume (m3)" class="v-in" style="flex:1; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
                     <input type="text" placeholder="Destination (e.g., Mumbai, Pune, Agra)" class="d-in" style="flex:2; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; outline: none; font-size: 0.9rem;">
                 </div>`;
         }
