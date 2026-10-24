@@ -11,7 +11,11 @@
 #include <cmath>
 #include <climits>
 #include <cstdlib>
+#include <memory>
 #include "../include/algorithms.h"
+#include "../include/db.h"
+#include "../include/schema.h"
+#include "../include/seed.h"
 #include "../include/httplib.h"
 #include "../include/json.hpp"
 
@@ -169,6 +173,24 @@ int main() {
 
     map<string, vector<Edge>> network = loadNetworkMap();
     cout << "[SUCCESS] Network Map Loaded (" << network.size() << " Cities Synced)." << endl;
+
+    // --- DATABASE: the tables and the demo company are created on the first run ---
+    unique_ptr<Database> db;
+    try {
+        db = make_unique<Database>("data/logistics.db");
+        createSchema(*db);
+        DatabaseCounts counts = countRecords(*db);
+        if (counts.warehouses == 0) {
+            cout << "[DB] New database: creating the demo company (takes a few seconds)..." << endl;
+            counts = seedDemoData(*db, network);
+        }
+        cout << "[SUCCESS] Database ready: " << counts.warehouses << " warehouses, " << counts.trucks << " trucks, "
+             << counts.drivers << " drivers (+" << counts.pendingDrivers << " awaiting approval), "
+             << counts.managers << " managers, " << counts.customers << " customers." << endl;
+    } catch (const exception& e) {
+        cerr << "[FATAL] Database: " << e.what() << endl;
+        return 1;
+    }
 
     httplib::Server svr;
 

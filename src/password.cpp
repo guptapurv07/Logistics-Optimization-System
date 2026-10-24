@@ -52,8 +52,8 @@ public:
         update(lengthBytes, 8);
 
         std::array<std::uint8_t, 32> digest{};
-        for (int i = 0; i < 8; ++i) {
-            for (int j = 0; j < 4; ++j) digest[i * 4 + j] = std::uint8_t(state_[i] >> (24 - 8 * j));
+        for (std::size_t i = 0; i < 8; ++i) {
+            for (std::size_t j = 0; j < 4; ++j) digest[i * 4 + j] = std::uint8_t(state_[i] >> (24 - 8 * j));
         }
         return digest;
     }
