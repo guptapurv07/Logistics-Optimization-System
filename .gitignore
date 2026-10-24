@@ -1,0 +1,17 @@
+# Build outputs (rebuild with `make`)
+/app
+/main
+/LogisticsApp
+/LogisticsERP
+/LogisticsSystem
+*.o
+*.d
+/build/
+
+# The database the server creates and fills on first run (`make reset-db` rebuilds it)
+/data/logistics.db
+/data/logistics.db-wal
+/data/logistics.db-shm
+
+# macOS folder settings
+.DS_Store
