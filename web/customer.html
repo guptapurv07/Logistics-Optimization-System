@@ -15,6 +15,12 @@
         .unit { font-weight: 600; min-width: 64px; }
         .preview { font-weight: 600; color: var(--blue); }
         .goods-note { background: var(--box); border-radius: var(--radius); padding: 10px 12px; }
+        /* Wide screens: booking form on the left, orders on the right; narrower screens stack them */
+        .customer-layout { display: grid; gap: 18px; align-items: start; }
+        .customer-layout > .panel + .panel { margin-top: 0; }
+        .order-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        @media (min-width: 1600px) { .customer-layout { grid-template-columns: minmax(460px, 600px) minmax(0, 1fr); } }
+        @media (max-width: 640px) { .order-grid { grid-template-columns: minmax(0, 1fr); } }
     </style>
 </head>
 <body>
@@ -32,38 +38,40 @@
     <main class="page-wrap">
         <div class="page-head"><div><h1 id="company">Your shipments</h1><p id="contact"></p></div></div>
 
-        <section class="panel">
-            <div class="panel-head"><div><h2>Book a shipment</h2><p>Order in your goods' own unit; we work out the weight and space.</p></div></div>
-            <form id="order-form">
-                <div class="form-grid">
-                    <div class="field"><label for="o-warehouse">Ship from warehouse</label><select id="o-warehouse" required></select></div>
-                    <div class="field"><label for="o-goods">Goods</label><select id="o-goods" required></select></div>
-                    <div class="field">
-                        <label for="o-quantity">Quantity</label>
-                        <div class="quantity-row"><input id="o-quantity" type="number" min="0" step="1" required><span class="unit" id="o-unit"></span></div>
-                        <span class="hint" id="o-preview"></span>
+        <div class="customer-layout">
+            <section class="panel">
+                <div class="panel-head"><div><h2>Book a shipment</h2><p>Order in your goods' own unit; we work out the weight and space.</p></div></div>
+                <form id="order-form">
+                    <div class="form-grid order-grid">
+                        <div class="field"><label for="o-warehouse">Ship from warehouse</label><select id="o-warehouse" required></select></div>
+                        <div class="field"><label for="o-destination">Deliver to city</label><select id="o-destination" required></select></div>
+                        <div class="field"><label for="o-goods">Goods</label><select id="o-goods" required></select></div>
+                        <div class="field">
+                            <label for="o-quantity">Quantity</label>
+                            <div class="quantity-row"><input id="o-quantity" type="number" min="0" step="1" required><span class="unit" id="o-unit"></span></div>
+                            <span class="hint" id="o-preview"></span>
+                        </div>
+                        <div class="field wide"><span class="hint goods-note" id="o-handling"></span></div>
+                        <div class="field"><label for="o-receiver">Receiver name</label><input id="o-receiver" required maxlength="80"></div>
+                        <div class="field"><label for="o-phone">Receiver phone <span class="muted">(optional)</span></label><input id="o-phone" type="tel" maxlength="20"></div>
+                        <div class="field wide"><label for="o-address">Delivery address</label><input id="o-address" required maxlength="200" placeholder="Building, street, area"></div>
+                        <div class="field wide"><label for="o-notes">Notes for the driver <span class="muted">(optional)</span></label><input id="o-notes" maxlength="300"></div>
                     </div>
-                    <div class="field wide"><span class="hint goods-note" id="o-handling"></span></div>
-                    <div class="field"><label for="o-destination">Deliver to city</label><select id="o-destination" required></select></div>
-                    <div class="field"><label for="o-receiver">Receiver name</label><input id="o-receiver" required maxlength="80"></div>
-                    <div class="field"><label for="o-phone">Receiver phone <span class="muted">(optional)</span></label><input id="o-phone" type="tel" maxlength="20"></div>
-                    <div class="field wide"><label for="o-address">Delivery address</label><input id="o-address" required maxlength="200" placeholder="Building, street, area"></div>
-                    <div class="field wide"><label for="o-notes">Notes for the driver <span class="muted">(optional)</span></label><input id="o-notes" maxlength="300"></div>
-                </div>
-                <div class="form-actions"><button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg>Place order</button></div>
-                <div id="order-result"></div>
-            </form>
-        </section>
+                    <div class="form-actions"><button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg>Place order</button></div>
+                    <div id="order-result"></div>
+                </form>
+            </section>
 
-        <section class="panel">
-            <div class="panel-head"><h2 id="orders-title">Your orders</h2></div>
-            <div class="table-wrap">
-                <table>
-                    <thead><tr><th>Order</th><th>Goods</th><th>From</th><th>To</th><th>Status</th><th>Truck · driver</th><th>Placed</th><th>Delivered</th><th></th></tr></thead>
-                    <tbody id="orders-body"></tbody>
-                </table>
-            </div>
-        </section>
+            <section class="panel">
+                <div class="panel-head"><h2 id="orders-title">Your orders</h2></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Order</th><th>Goods</th><th>From</th><th>To</th><th>Status</th><th>Truck · driver</th><th>Placed</th><th>Delivered</th><th></th></tr></thead>
+                        <tbody id="orders-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </main>
 
     <script src="app.js"></script>

@@ -10,8 +10,17 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="style.css">
     <style>
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 18px; }
+        .driver-layout { display: grid; gap: 18px; }
+        .driver-main { display: grid; gap: 18px; min-width: 0; }
+        .driver-main > .panel + .panel { margin-top: 0; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; align-content: start; }
         .info-grid .panel + .panel { margin-top: 0; }
+        /* Wide screens: the trip on the left, the licence and warehouse boxes in a column on the right */
+        @media (min-width: 1400px) {
+            .driver-layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+            .driver-main { grid-column: 1; grid-row: 1; }
+            .info-grid { grid-column: 2; grid-row: 1; grid-template-columns: minmax(0, 1fr); }
+        }
         .rows { display: grid; }
         .row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
         .row:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -52,42 +61,46 @@
     <main class="page-wrap">
         <div class="page-head"><div><h1>Hello, <span id="dr-name">…</span></h1><p id="dr-status-text">Loading your trips…</p></div><div id="dr-status"></div></div>
 
-        <div class="info-grid">
-            <div class="panel">
-                <div class="panel-title">Licence</div>
-                <div class="rows">
-                    <div class="row"><span>Number</span><span id="dr-licence">…</span></div>
-                    <div class="row"><span>Class</span><span id="dr-class">…</span></div>
-                    <div class="row"><span>You may drive</span><span id="dr-covers">…</span></div>
+        <div class="driver-layout">
+            <div class="info-grid">
+                <div class="panel">
+                    <div class="panel-title">Licence</div>
+                    <div class="rows">
+                        <div class="row"><span>Number</span><span id="dr-licence">…</span></div>
+                        <div class="row"><span>Class</span><span id="dr-class">…</span></div>
+                        <div class="row"><span>You may drive</span><span id="dr-covers">…</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Warehouse</div>
+                    <div class="rows">
+                        <div class="row"><span>Code</span><span id="wh-code">…</span></div>
+                        <div class="row"><span>Name</span><span id="wh-name">…</span></div>
+                        <div class="row"><span>City</span><span id="wh-city">…</span></div>
+                    </div>
                 </div>
             </div>
-            <div class="panel">
-                <div class="panel-title">Warehouse</div>
-                <div class="rows">
-                    <div class="row"><span>Code</span><span id="wh-code">…</span></div>
-                    <div class="row"><span>Name</span><span id="wh-name">…</span></div>
-                    <div class="row"><span>City</span><span id="wh-city">…</span></div>
-                </div>
+
+            <div class="driver-main">
+                <section id="trip-panel" class="panel" hidden></section>
+
+                <section id="idle-panel" class="panel idle" hidden>
+                    <svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg>
+                    <h2>No trip right now</h2>
+                    <p class="muted" style="max-width: 440px; margin: 6px auto 0;">When the warehouse manager dispatches an order to you, the truck, the route and the cargo appear here.</p>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head"><h2>Finished trips</h2></div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Trip</th><th>Truck</th><th>Route</th><th>Km (both ways)</th><th>Left</th><th>Back</th><th>Took</th></tr></thead>
+                            <tbody id="history-body"></tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </div>
-
-        <section id="trip-panel" class="panel" hidden></section>
-
-        <section id="idle-panel" class="panel idle" hidden>
-            <svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg>
-            <h2>No trip right now</h2>
-            <p class="muted" style="max-width: 440px; margin: 6px auto 0;">When the warehouse manager dispatches an order to you, the truck, the route and the cargo appear here.</p>
-        </section>
-
-        <section class="panel">
-            <div class="panel-head"><h2>Finished trips</h2></div>
-            <div class="table-wrap">
-                <table>
-                    <thead><tr><th>Trip</th><th>Truck</th><th>Route</th><th>Km (both ways)</th><th>Left</th><th>Back</th><th>Took</th></tr></thead>
-                    <tbody id="history-body"></tbody>
-                </table>
-            </div>
-        </section>
     </main>
 
     <script src="app.js"></script>

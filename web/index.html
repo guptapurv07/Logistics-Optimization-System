@@ -16,14 +16,16 @@
         .map-panel { padding: 0; overflow: hidden; }
         .map-bar { display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
         .map-bar span:last-child { color: var(--muted); font-size: 0.86rem; }
-        #cy-map { width: 100%; height: 620px; background: var(--surface); }
+        #cy-map { width: 100%; height: max(480px, calc(100vh - 280px)); background: var(--surface); }   /* as tall as the window allows */
         .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.82rem; }
         .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
         .trip-item { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
         .trip-item:last-child { border-bottom: 0; padding-bottom: 0; }
         .trip-item:first-child { padding-top: 0; }
         .trip-item .btn { justify-self: start; }
+        .truck-form { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; max-width: 980px; }   /* one row: model, plate, button */
         @media (max-width: 1200px) { .map-layout { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 760px) { .truck-form { grid-template-columns: minmax(0, 1fr); } }
     </style>
 </head>
 <body>
@@ -111,10 +113,10 @@
                 <div class="page-head"><div><h1>Fleet</h1><p id="fleet-summary"></p></div></div>
                 <div class="panel">
                     <div class="panel-head"><h2>Add a truck</h2></div>
-                    <form id="truck-form" class="form-grid">
-                        <div class="field wide"><label for="truck-model">Model</label><select id="truck-model" required></select></div>
+                    <form id="truck-form" class="form-grid truck-form">
+                        <div class="field"><label for="truck-model">Model</label><select id="truck-model" required></select></div>
                         <div class="field"><label for="truck-plate">Number plate</label><input id="truck-plate" required maxlength="20" placeholder="MH 01 AB 1234"></div>
-                        <div class="field" style="align-self: end;"><button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add truck</button></div>
+                        <div class="field"><button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add truck</button></div>
                     </form>
                 </div>
                 <div class="panel">

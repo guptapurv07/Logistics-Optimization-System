@@ -31,18 +31,32 @@
     --map-origin: #222222;
     --map-dest: #B7791F;
 
-    /* Login illustration */
-    --art-sky-top: #E9EFF6;
-    --art-sky-bottom: #F7F9FB;
+    /* Login illustration: the day scene (sun and clouds) */
+    --art-sky-top: #DCE6F1;
+    --art-sky-bottom: #F3F6FA;
     --art-sun: #F3E3BF;
-    --art-hill-far: #DFE5EC;
-    --art-hill-near: #CDD6E0;
+    --art-cloud: #FFFFFF;
+    --art-moon: #EDE7D9;
+    --art-star: #D5DDEA;
+    --art-hill-far: #E1E7EE;
+    --art-city: #D2DBE5;
+    --art-lit: #F2CF7E;
+    --art-hill-near: #C8D2DD;
+    --art-tree: #B8C4D1;
     --art-road: #3A3F46;
+    --art-road-edge: #6B717A;
     --art-road-line: #F4F4F4;
+    --art-verge: #BFC9D5;
+    --art-post: #8F9AA6;
+    --art-reflector: #E3A23B;
     --art-trailer: #FFFFFF;
+    --art-logo: #2F6DB0;
     --art-dark: #2A2F36;
     --art-window: #DCE8F5;
     --art-hub: #C9CFD6;
+    --art-light: #F5D27A;
+    --art-tail: #D9534F;
+    --art-shadow: rgba(0, 0, 0, 0.16);
 
     --radius: 10px;           /* buttons, inputs, chips, menu items */
     --radius-card: 12px;      /* cards and panels */
@@ -75,17 +89,26 @@
     --map-origin: #EDEDED;
     --map-dest: #F0C27E;
 
-    --art-sky-top: #1A222C;
-    --art-sky-bottom: #12161B;
-    --art-sun: #3B3424;
-    --art-hill-far: #222A33;
-    --art-hill-near: #2A333E;
-    --art-road: #0C0E11;
-    --art-road-line: #5A5F66;
+    /* Login illustration: the night scene (half moon, stars, lit windows, headlights) */
+    --art-sky-top: #0C1219;
+    --art-sky-bottom: #1A2430;
+    --art-hill-far: #151D27;
+    --art-city: #111821;
+    --art-hill-near: #0F151C;
+    --art-tree: #0B1016;
+    --art-road: #07090C;
+    --art-road-edge: #2A3038;
+    --art-road-line: #4F5660;
+    --art-verge: #0B1015;
+    --art-post: #2C343E;
     --art-trailer: #D8DDE3;
+    --art-logo: #2F5E93;
     --art-dark: #4A5058;      /* wheels and chassis: lighter than the night road so they stay visible */
     --art-window: #9FC3EA;
     --art-hub: #A3A9B1;
+    --art-light: #FFE3A0;
+    --art-tail: #FF6B6B;
+    --art-shadow: rgba(0, 0, 0, 0.5);
 
     --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.45);
     color-scheme: dark;
@@ -132,7 +155,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
     flex-direction: column;
     gap: 18px;
 }
-.content { flex: 1; min-width: 0; padding: 28px 32px 56px; max-width: 1320px; }
+.content { flex: 1; min-width: 0; padding: 28px 32px 56px; }   /* uses the full width next to the sidebar */
 
 /* --- Brand --- */
 .brand { display: flex; align-items: center; gap: 10px; padding: 2px 4px; color: var(--text); }
@@ -193,9 +216,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
     background: var(--surface);
     border-bottom: 1px solid var(--line);
 }
-.topbar-inner { max-width: 1160px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.topbar-inner { padding: 12px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.page-wrap { max-width: 1160px; margin: 0 auto; padding: 28px 24px 56px; }
+.page-wrap { padding: 28px 32px 56px; }   /* full width, like the manager page */
 
 /* --- Page header --- */
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
@@ -207,7 +230,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .panel-head p { color: var(--muted); font-size: 0.88rem; }
 
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 18px; }   /* all cards in one row */
+@media (max-width: 1000px) { .stats { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .stat {
     background: var(--surface);
     border: 1px solid var(--line);

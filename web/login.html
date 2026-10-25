@@ -11,16 +11,42 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .auth { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 100vh; }
-        .auth-art { background: var(--box); padding: 32px 40px; display: flex; flex-direction: column; gap: 28px; justify-content: space-between; min-width: 0; }
-        .art-text h1 { font-size: 2.5rem; letter-spacing: -0.035em; max-width: 14ch; }
-        .art-text p { color: var(--muted); max-width: 42ch; margin-top: 12px; }
-        .facts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
-        .fact { border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 9px; font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-        .auth-art svg { width: 100%; height: auto; max-height: 50vh; border-radius: var(--radius-card); display: block; }
-        .road-lines { animation: drive 1.1s linear infinite; }
-        @keyframes drive { to { stroke-dashoffset: -32; } }
 
-        .auth-panel { background: var(--surface); padding: 24px 40px 40px; display: flex; flex-direction: column; min-width: 0; }
+        /* Picture side: a full-height highway scene that stays in view while the form side scrolls */
+        .auth-art { position: sticky; top: 0; align-self: start; height: 100vh; height: 100dvh; overflow: hidden; isolation: isolate; min-width: 0;
+            padding: 32px 40px; display: flex; flex-direction: column; gap: clamp(32px, 9vh, 96px);
+            background: linear-gradient(180deg, var(--art-sky-top), var(--art-sky-bottom) 70%); }
+        .art-scene { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; }
+        .auth .brand-name { display: inline; }   /* the app pages hide it on narrow screens; here it stays */
+        .art-text h1 { font-size: clamp(2rem, 3.3vw, 3rem); letter-spacing: -0.035em; line-height: 1.08; max-width: 13ch; }
+        .art-text p { color: var(--muted); font-size: 1.05rem; max-width: 34ch; margin-top: 14px; }
+
+        /* Day shows the sun and clouds; night swaps them for a half moon, stars, lit windows and headlights */
+        .art-night { display: none; }
+        :root[data-theme="dark"] .art-day { display: none; }
+        :root[data-theme="dark"] .art-night { display: inline; }
+
+        /* The road and the scenery slide left, so the truck drives forward (to the right) */
+        .road-lines { animation: road 0.9s linear infinite; }
+        @keyframes road { to { stroke-dashoffset: 44; } }
+        .layer.far { animation: slide 120s linear infinite; }
+        .layer.near { animation: slide 40s linear infinite; }
+        .layer.posts { animation: posts 1.53s linear infinite; }
+        @keyframes slide { to { transform: translateX(-600px); } }
+        @keyframes posts { to { transform: translateX(-75px); } }
+        .cloud { animation: cloud 150s linear infinite; }
+        .cloud.c2 { animation-delay: -50s; }
+        .cloud.c3 { animation-delay: -100s; }
+        @keyframes cloud { from { transform: translateX(780px); } to { transform: translateX(-140px); } }
+        .hub { transform-box: fill-box; transform-origin: center; animation: spin 2.3s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .twinkle { animation: twinkle 4s ease-in-out infinite; }
+        .twinkle.t1 { animation-delay: -1.3s; }
+        .twinkle.t0 { animation-delay: -2.6s; }
+        @keyframes twinkle { 50% { opacity: 0.25; } }
+
+        .auth-panel { background: var(--surface); padding: 24px 40px 28px; display: flex; flex-direction: column; min-height: 100vh; min-width: 0; }
+        .auth-foot { width: 100%; max-width: 470px; margin: 32px auto 0; color: var(--muted); font-size: 0.8rem; }
         .auth-top { display: flex; justify-content: flex-end; }
         .auth-form { width: 100%; max-width: 470px; margin: auto; padding-top: 24px; }
         .auth-form h2 { font-size: 1.6rem; letter-spacing: -0.03em; }
@@ -31,7 +57,7 @@
         .tab:hover { color: var(--text); }
         .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
         .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-        .role-option { text-align: left; border: 0; background: var(--box); color: var(--text); border-radius: var(--radius); padding: 11px 12px; cursor: pointer;
+        .role-option { display: flex; flex-direction: column; justify-content: flex-start; text-align: left; border: 0; background: var(--box); color: var(--text); border-radius: var(--radius); padding: 11px 12px; cursor: pointer;
             transition: background-color var(--speed) ease-out, color var(--speed) ease-out; }
         .role-option:hover { background: var(--box-hover); }
         .role-option.active { background: var(--ink); color: var(--on-ink); }
@@ -40,6 +66,7 @@
         fieldset { border: 0; min-width: 0; }
         fieldset[disabled] { display: none; }
         .group-title { margin: 22px 0 10px; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+        .form-grid > .hint { grid-column: 1 / -1; margin-top: -6px; }
         .form-message { display: none; margin-top: 16px; padding: 11px 14px; border-radius: var(--radius); font-weight: 500; font-size: 0.9rem; }
         .form-message.error { display: block; background: var(--danger-soft); color: var(--danger); }
         .form-message.ok { display: block; background: var(--ok-soft); color: var(--ok); }
@@ -48,13 +75,12 @@
         .demo summary:hover { color: var(--text); }
         .demo-group { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
         .demo-group > span { width: 100%; color: var(--muted); font-size: 0.8rem; }
+        /* Phones and narrow windows: the scene becomes a banner above the form */
         @media (max-width: 900px) {
-            .auth { grid-template-columns: 1fr; }
-            .auth-art { padding: 20px 16px; gap: 16px; }
-            .art-text h1 { font-size: 1.7rem; }
-            .art-text p { display: none; }
-            .auth-art svg { max-height: 180px; }
-            .auth-panel { padding: 16px 16px 32px; }
+            .auth { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+            .auth-art { position: relative; height: auto; aspect-ratio: 16 / 9; padding: 16px; }
+            .art-text { display: none; }
+            .auth-panel { min-height: 0; padding: 16px 16px 28px; }
         }
         @media (max-width: 560px) { .roles { grid-template-columns: 1fr; } }
     </style>
@@ -62,33 +88,62 @@
 <body>
     <main class="auth">
         <section class="auth-art">
+            <svg class="art-scene" viewBox="0 0 600 700" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+                <defs>
+                    <mask id="moon-cut"><rect width="600" height="700" fill="#fff"/><circle cx="487" cy="176" r="31" fill="#000"/></mask>
+                    <radialGradient id="sun-glow"><stop offset="0.5" style="stop-color: var(--art-sun); stop-opacity: 0.7"/><stop offset="1" style="stop-color: var(--art-sun); stop-opacity: 0"/></radialGradient>
+                    <radialGradient id="moon-glow"><stop offset="0.35" style="stop-color: var(--art-moon); stop-opacity: 0.16"/><stop offset="1" style="stop-color: var(--art-moon); stop-opacity: 0"/></radialGradient>
+                    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color: var(--art-light); stop-opacity: 0.4"/><stop offset="1" style="stop-color: var(--art-light); stop-opacity: 0"/></linearGradient>
+                </defs>
+                <g class="art-day">
+                    <circle cx="470" cy="190" r="84" fill="url(#sun-glow)"/>
+                    <circle cx="470" cy="190" r="42" style="fill: var(--art-sun)"/>
+                    <g style="fill: var(--art-cloud)">
+                        <g transform="translate(0 118)"><g class="cloud"><circle cx="20" cy="22" r="14"/><circle cx="40" cy="13" r="18"/><circle cx="61" cy="22" r="13"/><rect x="6" y="22" width="70" height="14" rx="7"/></g></g>
+                        <g transform="translate(0 236) scale(0.8)"><g class="cloud c2"><circle cx="20" cy="22" r="14"/><circle cx="40" cy="13" r="18"/><circle cx="61" cy="22" r="13"/><rect x="6" y="22" width="70" height="14" rx="7"/></g></g>
+                        <g transform="translate(0 318) scale(1.15)"><g class="cloud c3"><circle cx="20" cy="22" r="14"/><circle cx="40" cy="13" r="18"/><circle cx="61" cy="22" r="13"/><rect x="6" y="22" width="70" height="14" rx="7"/></g></g>
+                    </g>
+                </g>
+                <g class="art-night">
+                    <circle cx="470" cy="190" r="90" fill="url(#moon-glow)"/>
+                    <circle cx="470" cy="190" r="36" mask="url(#moon-cut)" style="fill: var(--art-moon)"/>
+                    <g style="fill: var(--art-star)"><circle class="twinkle t0" cx="372" cy="60" r="1.3"/><circle class="twinkle t1" cx="540" cy="92" r="1.5"/><circle cx="396" cy="300" r="1.2"/><circle class="twinkle t0" cx="568" cy="296" r="1.2"/><circle class="twinkle t1" cx="520" cy="352" r="1.1"/><circle cx="430" cy="330" r="1.6"/><circle class="twinkle t0" cx="580" cy="190" r="1.0"/><circle class="twinkle t1" cx="470" cy="40" r="1.2"/><circle cx="365" cy="180" r="1.1"/><circle class="twinkle t0" cx="560" cy="30" r="1.0"/><circle class="twinkle t1" cx="42" cy="330" r="1.4"/><circle cx="110" cy="380" r="1.1"/><circle class="twinkle t0" cx="150" cy="330" r="1.6"/><circle class="twinkle t1" cx="205" cy="400" r="1.2"/><circle cx="258" cy="352" r="1.0"/><circle class="twinkle t0" cx="300" cy="400" r="1.3"/><circle class="twinkle t1" cx="330" cy="320" r="1.2"/></g>
+                </g>
+                <g class="layer far">
+                    <path d="M0 465.5C6.7 464.2 13.3 463.3 20 463.0C26.7 462.7 33.3 463.0 40 463.7C46.7 464.3 53.3 465.6 60 466.9C66.7 468.3 73.3 470.0 80 471.5C86.7 473.0 93.3 474.7 100 476.0C106.7 477.2 113.3 478.3 120 478.9C126.7 479.5 133.3 479.7 140 479.6C146.7 479.5 153.3 478.8 160 478.1C166.7 477.4 173.3 476.2 180 475.2C186.7 474.2 193.3 473.0 200 472.1C206.7 471.3 213.3 470.5 220 470.1C226.7 469.7 233.3 469.7 240 470.0C246.7 470.3 253.3 471.0 260 472.0C266.7 473.0 273.3 474.4 280 475.8C286.7 477.2 293.3 479.0 300 480.6C306.7 482.3 313.3 484.1 320 485.6C326.7 487.2 333.3 488.7 340 490.1C346.7 491.5 353.3 492.7 360 493.8C366.7 494.8 373.3 495.8 380 496.6C386.7 497.5 393.3 498.2 400 499.0C406.7 499.7 413.3 500.3 420 500.9C426.7 501.5 433.3 502.0 440 502.4C446.7 502.7 453.3 503.0 460 502.9C466.7 502.8 473.3 502.6 480 501.9C486.7 501.2 493.3 500.2 500 498.8C506.7 497.4 513.3 495.5 520 493.5C526.7 491.4 533.3 488.8 540 486.3C546.7 483.8 553.3 480.9 560 478.3C566.7 475.8 573.3 473.1 580 470.9C586.7 468.8 593.3 466.8 600 465.5C606.7 464.2 613.3 463.3 620 463.0C626.7 462.7 633.3 463.0 640 463.7C646.7 464.3 653.3 465.6 660 466.9C666.7 468.3 673.3 470.0 680 471.5C686.7 473.0 693.3 474.7 700 476.0C706.7 477.2 713.3 478.3 720 478.9C726.7 479.5 733.3 479.7 740 479.6C746.7 479.5 753.3 478.8 760 478.1C766.7 477.4 773.3 476.2 780 475.2C786.7 474.2 793.3 473.0 800 472.1C806.7 471.3 813.3 470.5 820 470.1C826.7 469.7 833.3 469.7 840 470.0C846.7 470.3 853.3 471.0 860 472.0C866.7 473.0 873.3 474.4 880 475.8C886.7 477.2 893.3 479.0 900 480.6C906.7 482.3 913.3 484.1 920 485.6C926.7 487.2 933.3 488.7 940 490.1C946.7 491.5 953.3 492.7 960 493.8C966.7 494.8 973.3 495.8 980 496.6C986.7 497.5 993.3 498.2 1000 499.0C1006.7 499.7 1013.3 500.3 1020 500.9C1026.7 501.5 1033.3 502.0 1040 502.4C1046.7 502.7 1053.3 503.0 1060 502.9C1066.7 502.8 1073.3 502.6 1080 501.9C1086.7 501.2 1093.3 500.2 1100 498.8C1106.7 497.4 1113.3 495.5 1120 493.5C1126.7 491.4 1133.3 488.8 1140 486.3C1146.7 483.8 1153.3 480.9 1160 478.3C1166.7 475.8 1173.3 473.1 1180 470.9C1186.7 468.8 1193.3 466.8 1200 465.5V700H0Z" style="fill: var(--art-hill-far)"/>
+                    <g style="fill: var(--art-city)"><path d="M64 610V494l0-14 30 14 0-14 30 14 0-14 30 14 0-14 30 14V610Z"/><path d="M196 610V498l28-15 28 15V610Z"/><rect x="390" y="400" width="2" height="16"/><rect x="330" y="452" width="26" height="158"/><rect x="358" y="434" width="18" height="176"/><rect x="378" y="416" width="30" height="194"/><rect x="410" y="442" width="22" height="168"/><rect x="434" y="428" width="34" height="182"/><rect x="470" y="456" width="20" height="154"/><rect x="492" y="440" width="28" height="170"/><g transform="translate(600 0)"><path d="M64 610V494l0-14 30 14 0-14 30 14 0-14 30 14 0-14 30 14V610Z"/><path d="M196 610V498l28-15 28 15V610Z"/><rect x="390" y="400" width="2" height="16"/><rect x="330" y="452" width="26" height="158"/><rect x="358" y="434" width="18" height="176"/><rect x="378" y="416" width="30" height="194"/><rect x="410" y="442" width="22" height="168"/><rect x="434" y="428" width="34" height="182"/><rect x="470" y="456" width="20" height="154"/><rect x="492" y="440" width="28" height="170"/></g></g>
+                    <g class="art-night" style="fill: var(--art-lit)"><rect x="334" y="458" width="3" height="4"/><rect x="341" y="467" width="3" height="4"/><rect x="334" y="494" width="3" height="4"/><rect x="362" y="467" width="3" height="4"/><rect x="396" y="422" width="3" height="4"/><rect x="382" y="440" width="3" height="4"/><rect x="389" y="449" width="3" height="4"/><rect x="396" y="458" width="3" height="4"/><rect x="414" y="457" width="3" height="4"/><rect x="421" y="466" width="3" height="4"/><rect x="438" y="434" width="3" height="4"/><rect x="445" y="443" width="3" height="4"/><rect x="452" y="452" width="3" height="4"/><rect x="459" y="461" width="3" height="4"/><rect x="438" y="470" width="3" height="4"/><rect x="481" y="462" width="3" height="4"/><rect x="474" y="489" width="3" height="4"/><rect x="481" y="498" width="3" height="4"/><rect x="510" y="446" width="3" height="4"/><rect x="496" y="464" width="3" height="4"/><rect x="503" y="473" width="3" height="4"/><rect x="510" y="482" width="3" height="4"/><g transform="translate(600 0)"><rect x="334" y="458" width="3" height="4"/><rect x="341" y="467" width="3" height="4"/><rect x="334" y="494" width="3" height="4"/><rect x="362" y="467" width="3" height="4"/><rect x="396" y="422" width="3" height="4"/><rect x="382" y="440" width="3" height="4"/><rect x="389" y="449" width="3" height="4"/><rect x="396" y="458" width="3" height="4"/><rect x="414" y="457" width="3" height="4"/><rect x="421" y="466" width="3" height="4"/><rect x="438" y="434" width="3" height="4"/><rect x="445" y="443" width="3" height="4"/><rect x="452" y="452" width="3" height="4"/><rect x="459" y="461" width="3" height="4"/><rect x="438" y="470" width="3" height="4"/><rect x="481" y="462" width="3" height="4"/><rect x="474" y="489" width="3" height="4"/><rect x="481" y="498" width="3" height="4"/><rect x="510" y="446" width="3" height="4"/><rect x="496" y="464" width="3" height="4"/><rect x="503" y="473" width="3" height="4"/><rect x="510" y="482" width="3" height="4"/></g></g>
+                </g>
+                <g class="layer near">
+                    <path d="M0 526.7C6.7 525.9 13.3 525.5 20 525.7C26.7 525.9 33.3 526.8 40 527.8C46.7 528.9 53.3 530.5 60 532.0C66.7 533.5 73.3 535.2 80 536.6C86.7 538.0 93.3 539.3 100 540.5C106.7 541.6 113.3 542.4 120 543.3C126.7 544.2 133.3 544.9 140 545.9C146.7 547.0 153.3 548.1 160 549.4C166.7 550.7 173.3 552.3 180 553.8C186.7 555.2 193.3 557.0 200 558.2C206.7 559.3 213.3 560.4 220 560.8C226.7 561.1 233.3 561.0 240 560.3C246.7 559.5 253.3 558.0 260 556.4C266.7 554.7 273.3 552.4 280 550.4C286.7 548.4 293.3 546.2 300 544.5C306.7 542.8 313.3 541.4 320 540.4C326.7 539.5 333.3 539.1 340 538.8C346.7 538.5 353.3 538.8 360 538.8C366.7 538.8 373.3 539.0 380 538.9C386.7 538.8 393.3 538.5 400 538.1C406.7 537.7 413.3 537.0 420 536.5C426.7 535.9 433.3 535.2 440 534.9C446.7 534.6 453.3 534.5 460 534.6C466.7 534.8 473.3 535.4 480 536.0C486.7 536.5 493.3 537.5 500 538.1C506.7 538.6 513.3 539.2 520 539.3C526.7 539.3 533.3 539.0 540 538.3C546.7 537.5 553.3 536.2 560 534.8C566.7 533.5 573.3 531.7 580 530.3C586.7 529.0 593.3 527.5 600 526.7C606.7 525.9 613.3 525.5 620 525.7C626.7 525.9 633.3 526.8 640 527.8C646.7 528.9 653.3 530.5 660 532.0C666.7 533.5 673.3 535.2 680 536.6C686.7 538.0 693.3 539.3 700 540.5C706.7 541.6 713.3 542.4 720 543.3C726.7 544.2 733.3 544.9 740 545.9C746.7 547.0 753.3 548.1 760 549.4C766.7 550.7 773.3 552.3 780 553.8C786.7 555.2 793.3 557.0 800 558.2C806.7 559.3 813.3 560.4 820 560.8C826.7 561.1 833.3 561.0 840 560.3C846.7 559.5 853.3 558.0 860 556.4C866.7 554.7 873.3 552.4 880 550.4C886.7 548.4 893.3 546.2 900 544.5C906.7 542.8 913.3 541.4 920 540.4C926.7 539.5 933.3 539.1 940 538.8C946.7 538.5 953.3 538.8 960 538.8C966.7 538.8 973.3 539.0 980 538.9C986.7 538.8 993.3 538.5 1000 538.1C1006.7 537.7 1013.3 537.0 1020 536.5C1026.7 535.9 1033.3 535.2 1040 534.9C1046.7 534.6 1053.3 534.5 1060 534.6C1066.7 534.8 1073.3 535.4 1080 536.0C1086.7 536.5 1093.3 537.5 1100 538.1C1106.7 538.6 1113.3 539.2 1120 539.3C1126.7 539.3 1133.3 539.0 1140 538.3C1146.7 537.5 1153.3 536.2 1160 534.8C1166.7 533.5 1173.3 531.7 1180 530.3C1186.7 529.0 1193.3 527.5 1200 526.7V700H0Z" style="fill: var(--art-hill-near)"/>
+                    <g style="fill: var(--art-tree)"><rect x="35" y="521.2" width="2" height="9"/><circle cx="36" cy="515.2" r="9"/><rect x="117" y="537.0" width="2" height="9"/><circle cx="118" cy="531.0" r="9"/><rect x="261" y="549.8" width="2" height="9"/><circle cx="262" cy="543.8" r="9"/><rect x="403" y="531.9" width="2" height="9"/><circle cx="404" cy="525.9" r="9"/><rect x="529" y="533.1" width="2" height="9"/><circle cx="530" cy="527.1" r="9"/><g transform="translate(600 0)"><rect x="35" y="521.2" width="2" height="9"/><circle cx="36" cy="515.2" r="9"/><rect x="117" y="537.0" width="2" height="9"/><circle cx="118" cy="531.0" r="9"/><rect x="261" y="549.8" width="2" height="9"/><circle cx="262" cy="543.8" r="9"/><rect x="403" y="531.9" width="2" height="9"/><circle cx="404" cy="525.9" r="9"/><rect x="529" y="533.1" width="2" height="9"/><circle cx="530" cy="527.1" r="9"/></g></g>
+                </g>
+                <rect y="572" width="600" height="96" style="fill: var(--art-road)"/>
+                <g stroke-width="2" style="stroke: var(--art-road-edge)"><line x1="0" y1="579" x2="600" y2="579"/><line x1="0" y1="661" x2="600" y2="661"/></g>
+                <line class="road-lines" x1="0" y1="620" x2="600" y2="620" stroke-width="4" stroke-dasharray="26 18" style="stroke: var(--art-road-line)"/>
+                <rect y="668" width="600" height="32" style="fill: var(--art-verge)"/>
+                <g class="layer posts"><g style="fill: var(--art-post)"><rect x="0" y="557" width="3" height="15"/><rect x="75" y="557" width="3" height="15"/><rect x="150" y="557" width="3" height="15"/><rect x="225" y="557" width="3" height="15"/><rect x="300" y="557" width="3" height="15"/><rect x="375" y="557" width="3" height="15"/><rect x="450" y="557" width="3" height="15"/><rect x="525" y="557" width="3" height="15"/><rect x="600" y="557" width="3" height="15"/><rect x="675" y="557" width="3" height="15"/></g><g style="fill: var(--art-reflector)"><rect x="0" y="557" width="3" height="4"/><rect x="75" y="557" width="3" height="4"/><rect x="150" y="557" width="3" height="4"/><rect x="225" y="557" width="3" height="4"/><rect x="300" y="557" width="3" height="4"/><rect x="375" y="557" width="3" height="4"/><rect x="450" y="557" width="3" height="4"/><rect x="525" y="557" width="3" height="4"/><rect x="600" y="557" width="3" height="4"/><rect x="675" y="557" width="3" height="4"/></g></g>
+                <g class="truck">
+                    <ellipse cx="258" cy="612" rx="150" ry="5" style="fill: var(--art-shadow)"/>
+                    <path class="art-night" d="M403 556 L590 528 V600 L403 566Z" fill="url(#beam)"/>
+                    <rect x="112" y="483" width="204" height="96" rx="6" stroke-width="2.5" style="fill: var(--art-trailer); stroke: var(--blue)"/>
+                    <rect x="112" y="543" width="204" height="13" style="fill: var(--blue)"/>
+                    <text x="214" y="526" text-anchor="middle" font-size="24" font-weight="700" letter-spacing="-0.6" style="fill: var(--art-logo); font-family: var(--font)">TruckSetu</text>
+                    <path d="M316 510h54l33 36v33h-87z" style="fill: var(--blue)"/>
+                    <path d="M329 520h35l22 24h-57z" style="fill: var(--art-window)"/>
+                    <path d="M372 549v27M376 556h7" stroke-width="1.5" style="stroke: var(--art-dark); opacity: 0.35"/>
+                    <rect x="397" y="556" width="6" height="8" rx="1.5" style="fill: var(--art-light)"/>
+                    <rect x="109" y="561" width="4" height="12" rx="1" style="fill: var(--art-tail)"/>
+                    <rect x="112" y="579" width="291" height="9" style="fill: var(--art-dark)"/>
+                    <rect x="399" y="571" width="8" height="11" rx="2" style="fill: var(--art-dark)"/>
+                    <circle cx="157" cy="594" r="18" style="fill: var(--art-dark)"/><g class="hub"><circle cx="157" cy="594" r="8" style="fill: var(--art-hub)"/><g style="fill: var(--art-dark)"><circle cx="161.6" cy="594.0" r="1.5"/><circle cx="158.4" cy="598.4" r="1.5"/><circle cx="153.3" cy="596.7" r="1.5"/><circle cx="153.3" cy="591.3" r="1.5"/><circle cx="158.4" cy="589.6" r="1.5"/></g></g><circle cx="202" cy="594" r="18" style="fill: var(--art-dark)"/><g class="hub"><circle cx="202" cy="594" r="8" style="fill: var(--art-hub)"/><g style="fill: var(--art-dark)"><circle cx="206.6" cy="594.0" r="1.5"/><circle cx="203.4" cy="598.4" r="1.5"/><circle cx="198.3" cy="596.7" r="1.5"/><circle cx="198.3" cy="591.3" r="1.5"/><circle cx="203.4" cy="589.6" r="1.5"/></g></g><circle cx="364" cy="594" r="18" style="fill: var(--art-dark)"/><g class="hub"><circle cx="364" cy="594" r="8" style="fill: var(--art-hub)"/><g style="fill: var(--art-dark)"><circle cx="368.6" cy="594.0" r="1.5"/><circle cx="365.4" cy="598.4" r="1.5"/><circle cx="360.3" cy="596.7" r="1.5"/><circle cx="360.3" cy="591.3" r="1.5"/><circle cx="365.4" cy="589.6" r="1.5"/></g></g>
+                </g>
+            </svg>
             <a class="brand" href="/login.html"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-bridge"/></svg></span><span class="brand-name">TruckSetu</span></a>
             <div class="art-text">
                 <h1>Every truck, the shortest road.</h1>
-                <p>Customers book a shipment, the warehouse picks the right truck and a licensed driver, and the route is planned from city to city, there and back.</p>
-                <div class="facts" id="facts"><span class="fact">Dijkstra routing</span></div>
+                <p>Book shipments, dispatch trucks and track every delivery, all in one place.</p>
             </div>
-            <svg viewBox="0 0 400 260" role="img" aria-label="A delivery truck driving on a highway between hills">
-                <defs>
-                    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" style="stop-color: var(--art-sky-top)"/><stop offset="1" style="stop-color: var(--art-sky-bottom)"/>
-                    </linearGradient>
-                </defs>
-                <rect width="400" height="260" fill="url(#sky)"/>
-                <circle cx="312" cy="66" r="30" style="fill: var(--art-sun)"/>
-                <path d="M0 166 Q 80 126 160 160 T 320 150 T 400 156 V260 H0Z" style="fill: var(--art-hill-far)"/>
-                <path d="M0 186 Q 100 158 200 180 T 400 174 V260 H0Z" style="fill: var(--art-hill-near)"/>
-                <rect y="196" width="400" height="52" style="fill: var(--art-road)"/>
-                <line class="road-lines" x1="0" y1="222" x2="400" y2="222" stroke-width="3" stroke-dasharray="18 14" style="stroke: var(--art-road-line)"/>
-                <g stroke-width="3" stroke-linecap="round" style="stroke: var(--art-hill-near)"><line x1="56" y1="152" x2="92" y2="152"/><line x1="42" y1="167" x2="92" y2="167"/><line x1="64" y1="182" x2="92" y2="182"/></g>
-                <rect x="104" y="128" width="136" height="64" rx="4" stroke-width="2" style="fill: var(--art-trailer); stroke: var(--blue)"/>
-                <rect x="104" y="168" width="136" height="9" style="fill: var(--blue)"/>
-                <path d="M240 146 h36 l22 24 v22 h-58z" style="fill: var(--blue)"/>
-                <path d="M249 153 h23 l15 16 h-38z" style="fill: var(--art-window)"/>
-                <rect x="104" y="192" width="194" height="6" style="fill: var(--art-dark)"/>
-                <g style="fill: var(--art-dark)"><circle cx="134" cy="202" r="12"/><circle cx="164" cy="202" r="12"/><circle cx="272" cy="202" r="12"/></g>
-                <g style="fill: var(--art-hub)"><circle cx="134" cy="202" r="5"/><circle cx="164" cy="202" r="5"/><circle cx="272" cy="202" r="5"/></g>
-            </svg>
         </section>
 
         <section class="auth-panel">
@@ -154,7 +209,7 @@
                     </fieldset>
 
                     <fieldset data-role="driver" disabled>
-                        <div class="group-title">Driving licence</div>
+                        <div class="group-title">Warehouse and licence</div>
                         <div class="form-grid">
                             <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
                             <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
@@ -182,14 +237,16 @@
                     <div class="group-title">Login details</div>
                     <div class="form-grid">
                         <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
-                        <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"><span class="hint">At least 8 characters, with a letter and a number</span></div>
+                        <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"></div>
                         <div class="field"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
+                        <span class="hint">At least 8 characters, with a letter and a number</span>
                     </div>
 
                     <div class="form-message" id="register-message" role="alert"></div>
                     <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Create account</button>
                 </form>
             </div>
+            <p class="auth-foot">© 2026 TruckSetu</p>
         </section>
     </main>
 
@@ -230,15 +287,13 @@
             $('login-password').focus();
         }));
 
-        // --- Lists for the sign-up form (and the facts on the picture side) come from the server ---
+        // --- Lists for the sign-up form come from the server ---
         async function loadLists() {
             const catalog = await App.api('/api/catalog');
             const taken = new Set(catalog.warehouses.map(w => w.city));
             App.fillSelect($('r-customer-city'), catalog.cities, c => c, c => c, 'Choose your city');
             App.fillSelect($('r-manager-city'), catalog.cities.filter(c => !taken.has(c)), c => c, c => c, 'Choose a city');
             App.fillSelect($('r-warehouse'), catalog.warehouses, w => w.id, w => `${w.code} · ${w.name} (${w.city})`, 'Choose a warehouse');
-            $('facts').innerHTML = [`${catalog.warehouses.length} warehouses`, `${catalog.cities.length} cities`, `${catalog.goods.length} goods types`, 'Dijkstra routing']
-                .map(text => `<span class="fact">${App.escape(text)}</span>`).join('');
         }
 
         // --- Already logged in? Offer to continue or to log out ---
