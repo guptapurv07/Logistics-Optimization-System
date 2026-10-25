@@ -1,5 +1,29 @@
 // --- SHARED PAGE HELPERS (loaded by every page) ---
 const App = (() => {
+    // --- Line icons: one SVG sprite, used as <svg class="icon"><use href="#i-name"/></svg> ---
+    const SPRITE = `<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-bridge" viewBox="0 0 24 24"><path d="M2 16h20"/><path d="M4 16c0-5 3.5-8 8-8s8 3 8 8"/><path d="M8 16v-5M12 16V8M16 16v-5"/></symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+        <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></symbol>
+        <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6h12v10H2z"/><path d="M14 9h4l3.5 3.5V16H14z"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="17.5" cy="17.5" r="1.8"/></symbol>
+        <symbol id="i-id" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16c.7-1.6 1.9-2.4 3.2-2.4s2.5.8 3.2 2.4"/><path d="M14 10h4M14 13h3"/></symbol>
+        <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></symbol>
+        <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4z"/><path d="M4 17a3 3 0 0 1 3-3h11"/><path d="M8 8h6"/></symbol>
+        <symbol id="i-send" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></symbol>
+        <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l-4-4 4-4"/><path d="M6 12h10"/></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    </svg>`;
+
+    function icon(name, extraClass = '') {
+        return `<svg class="icon ${extraClass}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    }
+
     // Every value shown on a page goes through escape(), so text typed by users can't become HTML or scripts
     function escape(value) {
         return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -92,6 +116,7 @@ const App = (() => {
             area = document.createElement('div');
             area.id = 'toast-area';
             area.className = 'toast-area';
+            area.setAttribute('role', 'status');
             document.body.appendChild(area);
         }
         const toast = document.createElement('div');
@@ -130,5 +155,44 @@ const App = (() => {
         }
     }
 
-    return { escape, api, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy };
+    // --- Light / dark mode ---
+    // Light is the default. Each page's <head> applies a saved choice before drawing, so there is no flash.
+    const THEME_KEY = 'trucksetu-theme';
+
+    function theme() {
+        return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    }
+
+    function setTheme(mode) {
+        if (mode === 'dark') document.documentElement.dataset.theme = 'dark';
+        else delete document.documentElement.dataset.theme;
+        try {
+            localStorage.setItem(THEME_KEY, mode);
+        } catch (storageBlocked) {
+            // private windows may block storage; the switch still works for this page
+        }
+        updateThemeToggles();
+        window.dispatchEvent(new CustomEvent('themechange', { detail: mode }));
+    }
+
+    function updateThemeToggles() {
+        const dark = theme() === 'dark';
+        document.querySelectorAll('[data-theme-toggle]').forEach(button => {
+            button.innerHTML = icon(dark ? 'sun' : 'moon') + `<span class="label">${dark ? 'Light' : 'Dark'}</span>`;
+            button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+            button.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+        });
+    }
+
+    // Reads a colour token, e.g. token('--blue'), for code that can't use CSS (the map)
+    function token(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    document.body.insertAdjacentHTML('afterbegin', SPRITE);
+    document.querySelectorAll('[data-theme-toggle]').forEach(button =>
+        button.addEventListener('click', () => setTheme(theme() === 'dark' ? 'light' : 'dark')));
+    updateThemeToggles();
+
+    return { icon, escape, api, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy, theme, setTheme, token };
 })();

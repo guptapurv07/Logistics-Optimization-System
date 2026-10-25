@@ -3,138 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logistics ERP | Log in</title>
+    <title>TruckSetu | Log in</title>
+    <script>try { if (localStorage.getItem('trucksetu-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="style.css">
     <style>
-        body { background: linear-gradient(160deg, #16213e 0%, #1a1a2e 100%); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 16px; }
-        .auth-card { background: white; padding: 36px 40px; border-radius: 20px; width: 100%; max-width: 640px; box-shadow: 0 15px 45px rgba(0,0,0,0.45); }
-        .brand { text-align: center; color: var(--accent-red); letter-spacing: 2px; font-size: 1.6rem; font-weight: 900; }
-        .tagline { text-align: center; color: var(--text-muted); margin: 6px 0 24px; font-size: 0.9rem; }
-        .tabs { display: flex; gap: 8px; background: #f3f4f6; padding: 6px; border-radius: 12px; margin-bottom: 24px; }
-        .tab { flex: 1; padding: 11px; border: none; border-radius: 9px; background: transparent; font-weight: 700; font-size: 0.95rem; cursor: pointer; color: #6b7280; }
-        .tab.active { background: white; color: var(--primary-dark); box-shadow: var(--shadow-sm); }
-        .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .role-option { border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; background: #fff; font-family: inherit; }
-        .role-option strong { display: block; color: var(--primary-dark); margin-bottom: 4px; }
-        .role-option span { font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; display: block; }
-        .role-option.active { border-color: var(--accent-red); background: #fff7f8; }
-        fieldset { border: none; }
+        .auth { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 100vh; }
+        .auth-art { background: var(--box); padding: 32px 40px; display: flex; flex-direction: column; gap: 28px; justify-content: space-between; min-width: 0; }
+        .art-text h1 { font-size: 2.5rem; letter-spacing: -0.035em; max-width: 14ch; }
+        .art-text p { color: var(--muted); max-width: 42ch; margin-top: 12px; }
+        .facts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+        .fact { border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 9px; font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .auth-art svg { width: 100%; height: auto; max-height: 50vh; border-radius: var(--radius-card); display: block; }
+        .road-lines { animation: drive 1.1s linear infinite; }
+        @keyframes drive { to { stroke-dashoffset: -32; } }
+
+        .auth-panel { background: var(--surface); padding: 24px 40px 40px; display: flex; flex-direction: column; min-width: 0; }
+        .auth-top { display: flex; justify-content: flex-end; }
+        .auth-form { width: 100%; max-width: 470px; margin: auto; padding-top: 24px; }
+        .auth-form h2 { font-size: 1.6rem; letter-spacing: -0.03em; }
+        .auth-form .lead { color: var(--muted); margin-top: 4px; }
+        .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--box); padding: 4px; border-radius: 12px; margin: 22px 0 20px; }
+        .tab { border: 0; background: transparent; padding: 9px; border-radius: 9px; font-weight: 600; color: var(--muted); cursor: pointer;
+            transition: background-color var(--speed) ease-out, color var(--speed) ease-out; }
+        .tab:hover { color: var(--text); }
+        .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+        .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .role-option { text-align: left; border: 0; background: var(--box); color: var(--text); border-radius: var(--radius); padding: 11px 12px; cursor: pointer;
+            transition: background-color var(--speed) ease-out, color var(--speed) ease-out; }
+        .role-option:hover { background: var(--box-hover); }
+        .role-option.active { background: var(--ink); color: var(--on-ink); }
+        .role-option strong { display: block; font-weight: 600; }
+        .role-option span { display: block; font-size: 0.78rem; opacity: 0.8; line-height: 1.35; margin-top: 2px; }
+        fieldset { border: 0; min-width: 0; }
         fieldset[disabled] { display: none; }
-        .group-title { margin-top: 26px; padding-bottom: 6px; border-bottom: 2px solid #f0f0f0; color: var(--accent-red); font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-        .form-message { display: none; margin-top: 18px; padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
-        .form-message.error { display: block; background: #fdecea; color: #b42318; border: 1px solid #f5c2bd; }
-        .form-message.ok { display: block; background: #e8f8ef; color: #1e8449; border: 1px solid #b7e4c7; }
-        .submit { width: 100%; margin-top: 24px; }
-        .demo { margin-top: 26px; font-size: 0.85rem; color: #4b5563; }
-        .demo summary { cursor: pointer; font-weight: 700; color: var(--primary-dark); }
-        .demo p { margin: 10px 0 6px; }
-        .demo button { margin: 3px 4px 3px 0; }
-        @media (max-width: 600px) { .roles { grid-template-columns: 1fr; } .auth-card { padding: 28px 22px; } }
+        .group-title { margin: 22px 0 10px; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+        .form-message { display: none; margin-top: 16px; padding: 11px 14px; border-radius: var(--radius); font-weight: 500; font-size: 0.9rem; }
+        .form-message.error { display: block; background: var(--danger-soft); color: var(--danger); }
+        .form-message.ok { display: block; background: var(--ok-soft); color: var(--ok); }
+        .demo { margin-top: 22px; font-size: 0.88rem; }
+        .demo summary { cursor: pointer; font-weight: 600; color: var(--muted); }
+        .demo summary:hover { color: var(--text); }
+        .demo-group { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .demo-group > span { width: 100%; color: var(--muted); font-size: 0.8rem; }
+        @media (max-width: 900px) {
+            .auth { grid-template-columns: 1fr; }
+            .auth-art { padding: 20px 16px; gap: 16px; }
+            .art-text h1 { font-size: 1.7rem; }
+            .art-text p { display: none; }
+            .auth-art svg { max-height: 180px; }
+            .auth-panel { padding: 16px 16px 32px; }
+        }
+        @media (max-width: 560px) { .roles { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="auth-card">
-        <h1 class="brand">LOGISTICS ERP</h1>
-        <p class="tagline">Multi-warehouse dispatch for India</p>
-
-        <div id="session-banner" class="notice" hidden></div>
-
-        <div class="tabs" role="tablist">
-            <button type="button" class="tab active" data-tab="login-form">Log in</button>
-            <button type="button" class="tab" data-tab="register-form">Create account</button>
-        </div>
-
-        <form id="login-form" autocomplete="on">
-            <div class="form-grid">
-                <div class="field wide">
-                    <label for="login-username">Username</label>
-                    <input id="login-username" name="username" autocomplete="username" required>
-                </div>
-                <div class="field wide">
-                    <label for="login-password">Password</label>
-                    <input id="login-password" name="password" type="password" autocomplete="current-password" required>
-                </div>
+    <main class="auth">
+        <section class="auth-art">
+            <a class="brand" href="/login.html"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-bridge"/></svg></span><span class="brand-name">TruckSetu</span></a>
+            <div class="art-text">
+                <h1>Every truck, the shortest road.</h1>
+                <p>Customers book a shipment, the warehouse picks the right truck and a licensed driver, and the route is planned from city to city, there and back.</p>
+                <div class="facts" id="facts"><span class="fact">Dijkstra routing</span></div>
             </div>
-            <div class="form-message" id="login-message" role="alert"></div>
-            <button class="btn-primary submit" type="submit">Log in</button>
+            <svg viewBox="0 0 400 260" role="img" aria-label="A delivery truck driving on a highway between hills">
+                <defs>
+                    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" style="stop-color: var(--art-sky-top)"/><stop offset="1" style="stop-color: var(--art-sky-bottom)"/>
+                    </linearGradient>
+                </defs>
+                <rect width="400" height="260" fill="url(#sky)"/>
+                <circle cx="312" cy="66" r="30" style="fill: var(--art-sun)"/>
+                <path d="M0 166 Q 80 126 160 160 T 320 150 T 400 156 V260 H0Z" style="fill: var(--art-hill-far)"/>
+                <path d="M0 186 Q 100 158 200 180 T 400 174 V260 H0Z" style="fill: var(--art-hill-near)"/>
+                <rect y="196" width="400" height="52" style="fill: var(--art-road)"/>
+                <line class="road-lines" x1="0" y1="222" x2="400" y2="222" stroke-width="3" stroke-dasharray="18 14" style="stroke: var(--art-road-line)"/>
+                <g stroke-width="3" stroke-linecap="round" style="stroke: var(--art-hill-near)"><line x1="56" y1="152" x2="92" y2="152"/><line x1="42" y1="167" x2="92" y2="167"/><line x1="64" y1="182" x2="92" y2="182"/></g>
+                <rect x="104" y="128" width="136" height="64" rx="4" stroke-width="2" style="fill: var(--art-trailer); stroke: var(--blue)"/>
+                <rect x="104" y="168" width="136" height="9" style="fill: var(--blue)"/>
+                <path d="M240 146 h36 l22 24 v22 h-58z" style="fill: var(--blue)"/>
+                <path d="M249 153 h23 l15 16 h-38z" style="fill: var(--art-window)"/>
+                <rect x="104" y="192" width="194" height="6" style="fill: var(--art-dark)"/>
+                <g style="fill: var(--art-dark)"><circle cx="134" cy="202" r="12"/><circle cx="164" cy="202" r="12"/><circle cx="272" cy="202" r="12"/></g>
+                <g style="fill: var(--art-hub)"><circle cx="134" cy="202" r="5"/><circle cx="164" cy="202" r="5"/><circle cx="272" cy="202" r="5"/></g>
+            </svg>
+        </section>
 
-            <details class="demo">
-                <summary>Demo accounts (password <code>Demo@123</code>)</summary>
-                <p>Warehouse managers:</p>
-                <button type="button" class="btn-secondary btn-small" data-demo="admin">admin · Noida</button>
-                <button type="button" class="btn-secondary btn-small" data-demo="sarah_logistics">sarah_logistics · Mumbai</button>
-                <button type="button" class="btn-secondary btn-small" data-demo="mgr.kochi">mgr.kochi</button>
-                <span class="hint">… or mgr.&lt;city&gt; for any of the 20 warehouses</span>
-                <p>Truck drivers (Noida):</p>
-                <button type="button" class="btn-secondary btn-small" data-demo="raam">raam</button>
-                <button type="button" class="btn-secondary btn-small" data-demo="shyam">shyam</button>
-                <button type="button" class="btn-secondary btn-small" data-demo="mohan">mohan</button>
-                <p>Customers:</p>
-                <button type="button" class="btn-secondary btn-small" data-demo="sandhu_grain_traders">sandhu_grain_traders · Noida</button>
-                <button type="button" class="btn-secondary btn-small" data-demo="pillai_distributors">pillai_distributors · Kochi</button>
-            </details>
-        </form>
+        <section class="auth-panel">
+            <div class="auth-top"><button type="button" class="btn btn-secondary btn-small" data-theme-toggle></button></div>
+            <div class="auth-form">
+                <div id="session-banner" class="notice" hidden></div>
+                <h2 id="form-title">Welcome back</h2>
+                <p class="lead" id="form-lead">Log in to your warehouse, truck or customer account.</p>
 
-        <form id="register-form" hidden>
-            <div class="roles" id="role-options">
-                <button type="button" class="role-option active" data-role="customer"><strong>Customer</strong><span>Book shipments and track them</span></button>
-                <button type="button" class="role-option" data-role="driver"><strong>Truck driver</strong><span>Join a warehouse; its manager approves you</span></button>
-                <button type="button" class="role-option" data-role="manager"><strong>Warehouse manager</strong><span>Open a new warehouse in a city</span></button>
-            </div>
-
-            <div class="group-title">About you</div>
-            <div class="form-grid">
-                <div class="field"><label for="r-name">Full name</label><input id="r-name" required maxlength="80"></div>
-                <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" required maxlength="120"></div>
-                <div class="field"><label for="r-phone">Phone <span class="muted">(optional)</span></label><input id="r-phone" type="tel" maxlength="20" placeholder="98765 43210"></div>
-            </div>
-
-            <fieldset data-role="customer">
-                <div class="group-title">Your company</div>
-                <div class="form-grid">
-                    <div class="field"><label for="r-company">Company name</label><input id="r-company" required maxlength="100"></div>
-                    <div class="field"><label for="r-customer-city">City</label><select id="r-customer-city" required></select></div>
-                    <div class="field wide"><label for="r-customer-address">Address</label><input id="r-customer-address" required maxlength="200"></div>
+                <div class="tabs" role="tablist">
+                    <button type="button" class="tab active" data-tab="login-form">Log in</button>
+                    <button type="button" class="tab" data-tab="register-form">Create account</button>
                 </div>
-            </fieldset>
 
-            <fieldset data-role="driver" disabled>
-                <div class="group-title">Driving licence</div>
-                <div class="form-grid">
-                    <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
-                    <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
-                    <div class="field">
-                        <label for="r-licence-class">Licence class</label>
-                        <select id="r-licence-class" required>
-                            <option value="LMV">LMV: light trucks up to 7.5 t</option>
-                            <option value="HMV">HMV: all trucks</option>
-                        </select>
+                <form id="login-form" autocomplete="on">
+                    <div class="form-grid">
+                        <div class="field wide"><label for="login-username">Username</label><input id="login-username" name="username" autocomplete="username" required></div>
+                        <div class="field wide"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
                     </div>
-                </div>
-                <p class="hint" style="margin-top: 10px;">You can log in once the warehouse manager has approved your application.</p>
-            </fieldset>
+                    <div class="form-message" id="login-message" role="alert"></div>
+                    <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Log in</button>
 
-            <fieldset data-role="manager" disabled>
-                <div class="group-title">Your warehouse</div>
-                <div class="form-grid">
-                    <div class="field"><label for="r-warehouse-name">Warehouse name</label><input id="r-warehouse-name" required maxlength="60" placeholder="e.g. Goa Coastal Depot"></div>
-                    <div class="field"><label for="r-manager-city">City</label><select id="r-manager-city" required></select></div>
-                    <div class="field wide"><label for="r-manager-address">Warehouse address</label><input id="r-manager-address" required maxlength="200"></div>
-                </div>
-                <p class="hint" style="margin-top: 10px;">Each city has one warehouse for now, so cities that already have one aren't listed. A new warehouse starts with no trucks; add them under Fleet.</p>
-            </fieldset>
+                    <details class="demo">
+                        <summary>Demo accounts (password Demo@123)</summary>
+                        <div class="demo-group"><span>Warehouse managers</span>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="admin">admin · Noida</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="sarah_logistics">sarah_logistics · Mumbai</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="mgr.kochi">mgr.kochi</button>
+                        </div>
+                        <div class="demo-group"><span>Truck drivers (Noida)</span>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="raam">raam</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="shyam">shyam</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="rohit">rohit</button>
+                        </div>
+                        <div class="demo-group"><span>Customers</span>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="sandhu_grain_traders">sandhu_grain_traders · Noida</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="pillai_distributors">pillai_distributors · Kochi</button>
+                        </div>
+                    </details>
+                </form>
 
-            <div class="group-title">Login details</div>
-            <div class="form-grid">
-                <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
-                <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"><span class="hint">At least 8 characters, with a letter and a number</span></div>
-                <div class="field"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
+                <form id="register-form" hidden>
+                    <div class="roles" id="role-options">
+                        <button type="button" class="role-option active" data-role="customer"><strong>Customer</strong><span>Book shipments and track them</span></button>
+                        <button type="button" class="role-option" data-role="driver"><strong>Truck driver</strong><span>Join a warehouse; its manager approves you</span></button>
+                        <button type="button" class="role-option" data-role="manager"><strong>Warehouse manager</strong><span>Open a new warehouse in a city</span></button>
+                    </div>
+
+                    <div class="group-title">About you</div>
+                    <div class="form-grid">
+                        <div class="field"><label for="r-name">Full name</label><input id="r-name" required maxlength="80"></div>
+                        <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" required maxlength="120"></div>
+                        <div class="field wide"><label for="r-phone">Phone <span class="muted">(optional)</span></label><input id="r-phone" type="tel" maxlength="20" placeholder="98765 43210"></div>
+                    </div>
+
+                    <fieldset data-role="customer">
+                        <div class="group-title">Your company</div>
+                        <div class="form-grid">
+                            <div class="field"><label for="r-company">Company name</label><input id="r-company" required maxlength="100"></div>
+                            <div class="field"><label for="r-customer-city">City</label><select id="r-customer-city" required></select></div>
+                            <div class="field wide"><label for="r-customer-address">Address</label><input id="r-customer-address" required maxlength="200"></div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset data-role="driver" disabled>
+                        <div class="group-title">Driving licence</div>
+                        <div class="form-grid">
+                            <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
+                            <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
+                            <div class="field">
+                                <label for="r-licence-class">Licence class</label>
+                                <select id="r-licence-class" required>
+                                    <option value="LMV">LMV: light trucks up to 7.5 t</option>
+                                    <option value="HMV">HMV: all trucks</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="hint" style="margin-top: 10px;">You can log in once the warehouse manager has approved your application.</p>
+                    </fieldset>
+
+                    <fieldset data-role="manager" disabled>
+                        <div class="group-title">Your warehouse</div>
+                        <div class="form-grid">
+                            <div class="field"><label for="r-warehouse-name">Warehouse name</label><input id="r-warehouse-name" required maxlength="60" placeholder="e.g. Goa Coastal Depot"></div>
+                            <div class="field"><label for="r-manager-city">City</label><select id="r-manager-city" required></select></div>
+                            <div class="field wide"><label for="r-manager-address">Warehouse address</label><input id="r-manager-address" required maxlength="200"></div>
+                        </div>
+                        <p class="hint" style="margin-top: 10px;">Each city has one warehouse for now, so cities that already have one aren't listed. A new warehouse starts with no trucks; add them under Fleet.</p>
+                    </fieldset>
+
+                    <div class="group-title">Login details</div>
+                    <div class="form-grid">
+                        <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
+                        <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"><span class="hint">At least 8 characters, with a letter and a number</span></div>
+                        <div class="field"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
+                    </div>
+
+                    <div class="form-message" id="register-message" role="alert"></div>
+                    <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Create account</button>
+                </form>
             </div>
-
-            <div class="form-message" id="register-message" role="alert"></div>
-            <button class="btn-primary submit" type="submit">Create account</button>
-        </form>
-    </div>
+        </section>
+    </main>
 
     <script src="app.js"></script>
     <script>
@@ -148,9 +205,13 @@
 
         // --- Tabs ---
         function openTab(formId) {
+            const login = formId === 'login-form';
             document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === formId));
-            $('login-form').hidden = formId !== 'login-form';
-            $('register-form').hidden = formId !== 'register-form';
+            $('login-form').hidden = !login;
+            $('register-form').hidden = login;
+            $('form-title').textContent = login ? 'Welcome back' : 'Create your account';
+            $('form-lead').textContent = login ? 'Log in to your warehouse, truck or customer account.'
+                                               : 'Choose how you will use TruckSetu.';
         }
         document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => openTab(tab.dataset.tab)));
 
@@ -169,13 +230,15 @@
             $('login-password').focus();
         }));
 
-        // --- Lists for the sign-up form come from the server ---
+        // --- Lists for the sign-up form (and the facts on the picture side) come from the server ---
         async function loadLists() {
             const catalog = await App.api('/api/catalog');
             const taken = new Set(catalog.warehouses.map(w => w.city));
             App.fillSelect($('r-customer-city'), catalog.cities, c => c, c => c, 'Choose your city');
             App.fillSelect($('r-manager-city'), catalog.cities.filter(c => !taken.has(c)), c => c, c => c, 'Choose a city');
             App.fillSelect($('r-warehouse'), catalog.warehouses, w => w.id, w => `${w.code} · ${w.name} (${w.city})`, 'Choose a warehouse');
+            $('facts').innerHTML = [`${catalog.warehouses.length} warehouses`, `${catalog.cities.length} cities`, `${catalog.goods.length} goods types`, 'Dijkstra routing']
+                .map(text => `<span class="fact">${App.escape(text)}</span>`).join('');
         }
 
         // --- Already logged in? Offer to continue or to log out ---
@@ -187,15 +250,16 @@
                 banner.innerHTML = `Logged in as <strong>${App.escape(me.user.full_name)}</strong> (${App.escape(me.user.role)}).
                     <a href="${App.escape(me.home)}">Continue</a> · <a href="#" id="banner-logout">Log out</a>`;
                 banner.hidden = false;
+                banner.style.marginBottom = '18px';
                 $('banner-logout').addEventListener('click', event => { event.preventDefault(); App.logout(); });
             } catch (notLoggedIn) {
-                // nobody is logged in: just show the forms
+                // the server couldn't say: just show the forms
             }
         }
 
         $('login-form').addEventListener('submit', async event => {
             event.preventDefault();
-            const button = event.submitter || $('login-form').querySelector('button[type=submit]');
+            const button = $('login-form').querySelector('button[type=submit]');
             button.disabled = true;
             try {
                 const result = await App.api('/api/login', { username: $('login-username').value, password: $('login-password').value });
