@@ -1,5 +1,7 @@
 #include "../include/seed.h"
 #include "../include/algorithms.h"
+#include "../include/api.h"
+#include "../include/orders.h"
 #include "../include/password.h"
 #include <algorithm>
 #include <cctype>
@@ -187,6 +189,16 @@ const std::map<std::string, std::vector<std::string>> kCompanySuffixes = {
 
 const std::vector<std::string> kCustomerAreas = {"Main Market", "Industrial Area", "Old City", "Station Road", "Ring Road"};
 
+// Typical order sizes, in each goods type's own unit
+struct OrderSize {
+    const char* goods;
+    int low;
+    int high;
+};
+
+const std::vector<OrderSize> kOrderSizes = {
+    {"grain", 40, 240}, {"cloth", 20, 120}, {"cement", 40, 200}, {"sand", 6, 16}, {"cartons", 30, 300}};
+
 // Driver logins from the original truck_driver.csv, kept at the Noida warehouse
 const std::vector<std::string> kOriginalDrivers = {
     "raam", "shyam", "raju", "amit", "rohit", "suresh", "ramesh", "mukesh", "vijay", "ajay",
@@ -210,6 +222,7 @@ struct PlannedUser {
     std::string employeeCode;                        // managers
     std::string licenceNo, licenceClass, approval;   // drivers
     std::string companyName, city, address;          // customers
+    std::string goodsCode;                           // customers: what they mainly ship
 };
 
 struct PlannedTruck {
@@ -348,7 +361,8 @@ DatabaseCounts countRecords(Database& db) {
                (SELECT COUNT(*) FROM drivers WHERE approval = 'approved'),
                (SELECT COUNT(*) FROM drivers WHERE approval = 'pending'),
                (SELECT COUNT(*) FROM managers),
-               (SELECT COUNT(*) FROM customers))SQL");
+               (SELECT COUNT(*) FROM customers),
+               (SELECT COUNT(*) FROM orders WHERE status = 'pending'))SQL");
     query.step();
     DatabaseCounts counts;
     counts.warehouses = int(query.columnInt(0));
@@ -357,6 +371,7 @@ DatabaseCounts countRecords(Database& db) {
     counts.pendingDrivers = int(query.columnInt(3));
     counts.managers = int(query.columnInt(4));
     counts.customers = int(query.columnInt(5));
+    counts.pendingOrders = int(query.columnInt(6));
     return counts;
 }
 
@@ -454,6 +469,8 @@ DatabaseCounts seedDemoData(Database& db, const std::map<std::string, std::vecto
             std::string surname = random.pick(surnames);
             PlannedUser customer;
             customer.role = "customer";
+            customer.warehouse = w;
+            customer.goodsCode = goods.code;
             customer.companyName = surname + " " + random.pick(kCompanySuffixes.at(goods.code));
             customer.fullName = random.pick(kFirstNames) + " " + surname;
             customer.username = uniqueName(slug(customer.companyName), usernames);
@@ -495,6 +512,7 @@ DatabaseCounts seedDemoData(Database& db, const std::map<std::string, std::vecto
     Statement addDriver = db.prepare(
         "INSERT INTO drivers (user_id, warehouse_id, licence_no, licence_class, approval) VALUES (?1, ?2, ?3, ?4, ?5)");
     Statement addCustomer = db.prepare("INSERT INTO customers (user_id, company_name, city, address) VALUES (?1, ?2, ?3, ?4)");
+    std::vector<std::pair<std::int64_t, const PlannedUser*>> customers;
     for (const PlannedUser& user : users) {
         addUser.bind(1, user.username).bind(2, user.passwordHash).bind(3, user.role).bind(4, user.fullName).bind(5, user.email).run();
         addUser.reset();
@@ -509,9 +527,49 @@ DatabaseCounts seedDemoData(Database& db, const std::map<std::string, std::vecto
         } else {
             addCustomer.bind(1, userId).bind(2, user.companyName).bind(3, user.city).bind(4, user.address).run();
             addCustomer.reset();
+            customers.push_back({userId, &user});
         }
     }
     tx.commit();
+
+    // 3. Every customer has one order waiting at their local warehouse, so each manager can dispatch straight away.
+    //    The orders go through placeOrder, the same checks a real customer's order goes through.
+    SeedRandom orderRandom(kRandomSeed + 1);  // its own sequence, so the company above stays exactly the same
+    std::vector<std::string> cities;
+    for (const auto& [city, roads] : network) cities.push_back(city);
+    Transaction orderTx(db);
+    for (const auto& [customerId, customer] : customers) {
+        const WarehouseSeed& warehouse = kWarehouses[customer->warehouse];
+        std::string destination;
+        do {
+            destination = orderRandom.pick(cities);
+        } while (destination == warehouse.city);
+        const std::string& goodsCode = customer->goodsCode;  // lambdas can't capture structured bindings in C++17
+        auto size = std::find_if(kOrderSizes.begin(), kOrderSizes.end(),
+                                 [&goodsCode](const OrderSize& s) { return goodsCode == s.goods; });
+        int quantity = orderRandom.between(size->low, size->high);
+        std::string first = orderRandom.pick(kFirstNames);  // one random call per statement (see makeLicence)
+        std::string receiver = first + " " + orderRandom.pick(kSurnames.at(warehouse.region));
+        std::string number = std::to_string(orderRandom.between(1, 250));
+        std::string address = number + ", " + orderRandom.pick(kCustomerAreas) + ", " + destination;
+
+        SessionUser buyer;
+        buyer.id = customerId;
+        buyer.role = "customer";
+        for (int attempt = 0; attempt < 4; ++attempt) {
+            try {
+                placeOrder(db, buyer,
+                           {{"warehouse_id", warehouseIds[customer->warehouse]}, {"goods_code", customer->goodsCode},
+                            {"quantity", quantity}, {"destination_city", destination}, {"delivery_address", address},
+                            {"receiver_name", receiver}},
+                           network);
+                break;
+            } catch (const ApiError&) {
+                quantity = std::max(1, quantity / 2);  // too big for this warehouse's trucks: book a smaller load
+            }
+        }
+    }
+    orderTx.commit();
 
     // New writes first go to logistics.db-wal; copy them into logistics.db now,
     // so database viewers that open only the main file see the data too

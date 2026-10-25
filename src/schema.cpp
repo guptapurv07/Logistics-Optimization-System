@@ -108,6 +108,61 @@ CREATE INDEX idx_drivers_warehouse  ON drivers(warehouse_id, approval, status);
 CREATE INDEX idx_managers_warehouse ON managers(warehouse_id);
 )SQL";
 
+const char* const kSchemaV2 = R"SQL(
+-- One warehouse per city for now
+CREATE UNIQUE INDEX ux_warehouses_city ON warehouses(city);
+
+-- A login: the browser keeps a random token in a cookie, the database keeps only its SHA-256,
+-- so someone who reads this file still can't use it to log in as anyone
+CREATE TABLE sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+);
+
+-- One truck journey: out from the warehouse to the delivery, then back home
+CREATE TABLE trips (
+    id            INTEGER PRIMARY KEY,
+    warehouse_id  INTEGER NOT NULL REFERENCES warehouses(id),
+    truck_id      INTEGER NOT NULL REFERENCES trucks(id),
+    driver_id     INTEGER NOT NULL REFERENCES drivers(user_id),
+    status        TEXT NOT NULL DEFAULT 'in_transit' CHECK (status IN ('in_transit', 'returning', 'completed')),
+    route_json    TEXT NOT NULL,                     -- cities and roads, as planned when the trip started
+    distance_km   INTEGER NOT NULL CHECK (distance_km > 0),   -- warehouse to delivery, one way
+    cost          REAL NOT NULL CHECK (cost >= 0),            -- truck cost per km x the distance both ways
+    dispatched_at TEXT NOT NULL DEFAULT (datetime('now')),
+    delivered_at  TEXT,
+    completed_at  TEXT                               -- back at the warehouse, truck and driver free again
+);
+
+CREATE TABLE orders (
+    id               INTEGER PRIMARY KEY,
+    customer_id      INTEGER NOT NULL REFERENCES customers(user_id),
+    warehouse_id     INTEGER NOT NULL REFERENCES warehouses(id),   -- ships the goods; routes start here
+    goods_code       TEXT NOT NULL REFERENCES goods_types(code),
+    quantity         REAL NOT NULL CHECK (quantity > 0),           -- in the goods type's unit
+    weight_kg        REAL NOT NULL CHECK (weight_kg > 0),
+    volume_m3        REAL NOT NULL CHECK (volume_m3 > 0),
+    destination_city TEXT NOT NULL,
+    delivery_address TEXT NOT NULL,
+    receiver_name    TEXT NOT NULL,
+    receiver_phone   TEXT,
+    notes            TEXT,
+    status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'assigned', 'delivered', 'cancelled')),
+    trip_id          INTEGER REFERENCES trips(id),
+    created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    delivered_at     TEXT
+);
+
+CREATE INDEX idx_sessions_user     ON sessions(user_id);
+CREATE INDEX idx_trips_warehouse   ON trips(warehouse_id, status);
+CREATE INDEX idx_trips_driver      ON trips(driver_id, status);
+CREATE INDEX idx_orders_warehouse  ON orders(warehouse_id, status);
+CREATE INDEX idx_orders_customer   ON orders(customer_id);
+CREATE INDEX idx_orders_trip       ON orders(trip_id);
+)SQL";
+
 int readSchemaVersion(Database& db) {
     Statement version = db.prepare("PRAGMA user_version");
     version.step();
@@ -124,9 +179,11 @@ void createSchema(Database& db) {
                       std::to_string(version) + ", this program knows up to " + std::to_string(kSchemaVersion) + ")");
     }
 
-    // Version 0 means a brand-new file. Later versions will add upgrade steps here, one per version.
+    // Version 0 is a brand-new file. Each step upgrades by one version, so an old file catches up
+    // step by step and keeps its data; all steps run in one transaction, so a failure changes nothing.
     Transaction tx(db);
-    db.exec(kSchemaV1);
+    if (version < 1) db.exec(kSchemaV1);
+    if (version < 2) db.exec(kSchemaV2);
     db.exec("PRAGMA user_version = " + std::to_string(kSchemaVersion));
     tx.commit();
 }

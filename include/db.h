@@ -29,6 +29,7 @@ public:
     void exec(const std::string& sql);
     Statement prepare(const std::string& sql);
     std::int64_t lastInsertId() const;
+    int changes() const;  // rows changed by the last INSERT / UPDATE / DELETE
 
 private:
     sqlite3* db_ = nullptr;

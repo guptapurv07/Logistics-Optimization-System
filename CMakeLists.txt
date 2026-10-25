@@ -14,11 +14,16 @@ include_directories(include)
 add_executable(LogisticsApp
     src/main.cpp
     src/routing.cpp
-    src/allocation.cpp
     src/db.cpp
     src/schema.cpp
     src/password.cpp
     src/seed.cpp
+    src/api.cpp
+    src/accounts.cpp
+    src/orders.cpp
+    src/dispatch.cpp
+    src/manager.cpp
+    src/server.cpp
 )
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

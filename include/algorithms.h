@@ -6,6 +6,9 @@
 #include <map>
 #include "data_models.h"
 
+// City -> roads leaving it (every road is stored in both directions)
+using RoadNetwork = std::map<std::string, std::vector<Edge>>;
+
 // --- Routing Result ---
 struct RouteResult {
     bool reachable = false;
@@ -16,12 +19,9 @@ struct RouteResult {
 
 // --- Function Prototypes ---
 // Dijkstra Routing (routing.cpp)
-RouteResult runDijkstraRouting(const std::string& start, const std::string& end, const std::map<std::string, std::vector<Edge>>& graph);
+RouteResult runDijkstraRouting(const std::string& start, const std::string& end, const RoadNetwork& graph);
 
 // City lookup that ignores case and extra spaces; returns "" if the city is not in the map (routing.cpp)
-std::string findCity(const std::string& name, const std::map<std::string, std::vector<Edge>>& graph);
-
-// Greedy Allocation (allocation.cpp)
-std::vector<std::pair<int, int>> performGreedyAllocation(std::vector<Shipment>& shipments, std::vector<Truck>& trucks);
+std::string findCity(const std::string& name, const RoadNetwork& graph);
 
 #endif

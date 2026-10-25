@@ -6,7 +6,8 @@
 // --- DATABASE SCHEMA ---
 // The schema version is stored in the database file (PRAGMA user_version), so a later version of the
 // program can upgrade an old file step by step instead of guessing what it contains.
-constexpr int kSchemaVersion = 1;
+// 1: company (warehouses, users, trucks, catalogues)   2: orders, trips and login sessions
+constexpr int kSchemaVersion = 2;
 
 // Creates the tables in a new database; does nothing if the database is already up to date
 void createSchema(Database& db);

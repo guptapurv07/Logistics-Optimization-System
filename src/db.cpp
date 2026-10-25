@@ -44,6 +44,10 @@ std::int64_t Database::lastInsertId() const {
     return sqlite3_last_insert_rowid(db_);
 }
 
+int Database::changes() const {
+    return sqlite3_changes(db_);
+}
+
 // --- STATEMENT ---
 Statement::Statement(sqlite3* db, const std::string& sql) : db_(db) {
     if (sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt_, nullptr) != SQLITE_OK) {

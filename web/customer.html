@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics ERP | Customer</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .page { max-width: 1150px; margin: 0 auto; padding: 40px 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 2px solid rgba(0,0,0,0.05); padding-bottom: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+        .header h1 { font-size: 2rem; color: var(--primary-dark); }
+        .header p { margin-top: 5px; color: var(--text-muted); }
+        .actions { display: flex; gap: 10px; }
+        .results-section + .results-section { margin-top: 30px; }
+        .quantity-row { display: flex; gap: 10px; align-items: center; }
+        .quantity-row input { flex: 1; }
+        .unit { font-weight: 700; color: var(--primary-dark); min-width: 70px; }
+        .preview { font-weight: 700; color: var(--accent-red); }
+        td { padding: 14px 16px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="header">
+            <div>
+                <h1 id="company">Customer portal</h1>
+                <p id="contact"></p>
+            </div>
+            <div class="actions">
+                <button class="btn-secondary" id="refresh">↻ Refresh</button>
+                <button class="btn-secondary" id="logout">Log out</button>
+            </div>
+        </header>
+
+        <div class="results-section">
+            <div class="section-head"><h2>Book a shipment</h2></div>
+            <form id="order-form">
+                <div class="form-grid">
+                    <div class="field"><label for="o-warehouse">Ship from warehouse</label><select id="o-warehouse" required></select></div>
+                    <div class="field"><label for="o-goods">Goods</label><select id="o-goods" required></select></div>
+                    <div class="field">
+                        <label for="o-quantity">Quantity</label>
+                        <div class="quantity-row"><input id="o-quantity" type="number" min="0" step="1" required><span class="unit" id="o-unit"></span></div>
+                        <span class="hint" id="o-preview"></span>
+                    </div>
+                    <div class="field wide"><span class="hint" id="o-handling"></span></div>
+                    <div class="field"><label for="o-destination">Deliver to city</label><select id="o-destination" required></select></div>
+                    <div class="field"><label for="o-receiver">Receiver name</label><input id="o-receiver" required maxlength="80"></div>
+                    <div class="field"><label for="o-phone">Receiver phone <span class="muted">(optional)</span></label><input id="o-phone" type="tel" maxlength="20"></div>
+                    <div class="field wide"><label for="o-address">Delivery address</label><input id="o-address" required maxlength="200" placeholder="Building, street, area"></div>
+                    <div class="field wide"><label for="o-notes">Notes for the driver <span class="muted">(optional)</span></label><input id="o-notes" maxlength="300"></div>
+                </div>
+                <button class="btn-primary" type="submit" style="margin-top: 22px;">Place order</button>
+                <div id="order-result"></div>
+            </form>
+        </div>
+
+        <div class="results-section">
+            <div class="section-head"><h2 id="orders-title">Your orders</h2></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Order</th><th>Goods</th><th>From</th><th>To</th><th>Status</th><th>Truck · driver</th><th>Placed</th><th>Delivered</th><th></th></tr></thead>
+                    <tbody id="orders-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const $ = id => document.getElementById(id);
+        const E = App.escape;
+        let catalog = null, data = null;
+
+        const selectedGoods = () => catalog.goods.find(g => g.code === $('o-goods').value);
+        const selectedWarehouse = () => catalog.warehouses.find(w => String(w.id) === $('o-warehouse').value);
+
+        // The goods type decides the unit (bags, bales, tonnes, cartons) and how kg and m³ follow from the quantity
+        function updateGoods() {
+            const goods = selectedGoods();
+            if (!goods) return;
+            $('o-unit').textContent = goods.unit + 's';
+            $('o-quantity').step = goods.unit === 'tonne' ? '0.1' : '1';
+            $('o-handling').textContent = `${goods.kg_per_unit} kg and ${goods.m3_per_unit} m³ per ${goods.unit} · travels in: ${goods.body_types.join(' or ')} trucks · ${goods.handling}`;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const goods = selectedGoods(), amount = Number($('o-quantity').value);
+            $('o-preview').innerHTML = goods && amount > 0
+                ? `<span class="preview">= ${App.formatNumber(amount * goods.kg_per_unit)} kg · ${App.formatNumber(amount * goods.m3_per_unit, 1)} m³</span>`
+                : '';
+        }
+
+        // The destination can't be the warehouse's own city
+        function updateDestinations() {
+            const warehouse = selectedWarehouse(), current = $('o-destination').value;
+            const cities = catalog.cities.filter(c => !warehouse || c !== warehouse.city);
+            App.fillSelect($('o-destination'), cities, c => c, c => c, 'Choose a city');
+            if (cities.includes(current)) $('o-destination').value = current;
+        }
+
+        async function load() {
+            data = await App.api('/api/customer/dashboard');
+            const company = data.company || {};
+            $('company').textContent = company.name || 'Customer portal';
+            $('contact').textContent = `${data.user.full_name} · ${company.city || ''}`;
+            document.title = `${company.name || 'Customer'} | Logistics ERP`;
+            renderOrders();
+        }
+
+        function renderOrders() {
+            const orders = data.orders;
+            $('orders-title').textContent = orders.length ? `Your orders (${orders.length})` : 'Your orders';
+            $('orders-body').innerHTML = orders.length ? orders.map(o => `
+                <tr>
+                    <td><strong>#${o.id}</strong></td>
+                    <td>${E(App.quantity(o.quantity, o.goods.unit))}<div class="hint">${E(o.goods.name)} · ${App.formatNumber(o.weight_kg)} kg</div></td>
+                    <td>${E(o.warehouse.code)}<div class="hint">${E(o.warehouse.city)}</div></td>
+                    <td>${E(o.destination_city)}<div class="hint">${E(o.receiver_name)}</div></td>
+                    <td>${App.badge(o.status)}</td>
+                    <td class="small">${o.trip ? `${E(o.trip.truck_plate)}<div class="hint">${E(o.trip.driver_name)} · ${App.formatNumber(o.trip.distance_km)} km</div>` : '—'}</td>
+                    <td class="small">${App.formatDate(o.created_at)}</td>
+                    <td class="small">${App.formatDate(o.delivered_at)}</td>
+                    <td>${o.status === 'pending' ? `<button class="btn-secondary btn-small btn-danger" data-cancel="${o.id}">Cancel</button>` : ''}</td>
+                </tr>`).join('') : '<tr><td colspan="9" class="empty">No orders yet. Book your first shipment above.</td></tr>';
+        }
+
+        $('orders-body').addEventListener('click', event => {
+            const button = event.target.closest('[data-cancel]');
+            if (!button) return;
+            const id = Number(button.dataset.cancel);
+            if (!confirm(`Cancel order #${id}?`)) return;
+            App.busy(button, async () => {
+                await App.api('/api/customer/orders/cancel', { order_id: id });
+                App.notify(`Order #${id} cancelled`);
+                await load();
+            });
+        });
+
+        $('order-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const button = event.target.querySelector('button[type=submit]');
+            App.busy(button, async () => {
+                const result = await App.api('/api/customer/orders', {
+                    warehouse_id: $('o-warehouse').value, goods_code: $('o-goods').value, quantity: $('o-quantity').value,
+                    destination_city: $('o-destination').value, delivery_address: $('o-address').value,
+                    receiver_name: $('o-receiver').value, receiver_phone: $('o-phone').value, notes: $('o-notes').value,
+                });
+                $('order-result').innerHTML = `<p class="notice">Order <strong>#${result.id}</strong> placed:
+                    ${App.formatNumber(result.weight_kg)} kg, ${App.formatNumber(result.volume_m3, 1)} m³.
+                    Route ${result.path.map(E).join(' → ')} (${App.formatNumber(result.distance_km)} km). It waits for the warehouse to dispatch a truck.</p>`;
+                ['o-quantity', 'o-receiver', 'o-phone', 'o-address', 'o-notes'].forEach(id => { $(id).value = ''; });
+                updatePreview();
+                await load();
+            });
+        });
+
+        $('o-goods').addEventListener('change', updateGoods);
+        $('o-quantity').addEventListener('input', updatePreview);
+        $('o-warehouse').addEventListener('change', updateDestinations);
+        $('logout').addEventListener('click', App.logout);
+        $('refresh').addEventListener('click', event => App.busy(event.target, load));
+
+        (async () => {
+            try {
+                catalog = await App.api('/api/catalog');
+                App.fillSelect($('o-warehouse'), catalog.warehouses, w => w.id, w => `${w.code} · ${w.name} (${w.city})`);
+                App.fillSelect($('o-goods'), catalog.goods, g => g.code, g => g.name);
+                await load();
+                // Start with the warehouse in the customer's own city, if there is one
+                const local = catalog.warehouses.find(w => data.company && w.city === data.company.city);
+                if (local) $('o-warehouse').value = String(local.id);
+                updateDestinations();
+                updateGoods();
+            } catch (error) {
+                App.notify(error.message, 'error');
+            }
+        })();
+        setInterval(() => { if (!document.hidden && data) load().catch(() => {}); }, 30000);
+    </script>
+</body>
+</html>

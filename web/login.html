@@ -2,177 +2,247 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Logistics System | Secure Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics ERP | Log in</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { background: #1a1a2e; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .auth-card { background: white; padding: 40px; border-radius: 20px; width: 500px; box-shadow: 0 15px 45px rgba(0,0,0,0.5); position: relative; }
-        
-        /* --- INLINE NOTIFICATION BOX --- */
-        #status-msg {
-            display: none;
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-align: center;
-            animation: fadeIn 0.3s ease;
-        }
-        .msg-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-        .msg-success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #1a1a2e; font-size: 0.9rem; }
-        .input-group input, .input-group select { 
-            width: 100%; 
-            padding: 14px; 
-            border: 1.5px solid #eee; 
-            border-radius: 10px; 
-            box-sizing: border-box; 
-            font-size: 1rem;
-            background: #fdfdfd;
-        }
-        .input-group input:focus { outline: none; border-color: #e94560; background: #fff; }
-        ::placeholder { color: #ccc; }
-
-        .btn-auth { 
-            width: 100%; 
-            padding: 16px; 
-            background: #e94560; 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-weight: 700; 
-            font-size: 1.1rem; 
-            margin-top: 15px; 
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-        .btn-auth:hover { background: #c72c41; }
-        .hidden { display: none; }
-        .section-title { border-bottom: 2px solid #f0f0f0; margin: 25px 0 15px; padding-bottom: 8px; color: #e94560; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; }
-        #toggle { text-align: center; cursor: pointer; color: #0f3460; margin-top: 25px; font-weight: 600; font-size: 0.95rem; }
+        body { background: linear-gradient(160deg, #16213e 0%, #1a1a2e 100%); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 16px; }
+        .auth-card { background: white; padding: 36px 40px; border-radius: 20px; width: 100%; max-width: 640px; box-shadow: 0 15px 45px rgba(0,0,0,0.45); }
+        .brand { text-align: center; color: var(--accent-red); letter-spacing: 2px; font-size: 1.6rem; font-weight: 900; }
+        .tagline { text-align: center; color: var(--text-muted); margin: 6px 0 24px; font-size: 0.9rem; }
+        .tabs { display: flex; gap: 8px; background: #f3f4f6; padding: 6px; border-radius: 12px; margin-bottom: 24px; }
+        .tab { flex: 1; padding: 11px; border: none; border-radius: 9px; background: transparent; font-weight: 700; font-size: 0.95rem; cursor: pointer; color: #6b7280; }
+        .tab.active { background: white; color: var(--primary-dark); box-shadow: var(--shadow-sm); }
+        .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .role-option { border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; background: #fff; font-family: inherit; }
+        .role-option strong { display: block; color: var(--primary-dark); margin-bottom: 4px; }
+        .role-option span { font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; display: block; }
+        .role-option.active { border-color: var(--accent-red); background: #fff7f8; }
+        fieldset { border: none; }
+        fieldset[disabled] { display: none; }
+        .group-title { margin-top: 26px; padding-bottom: 6px; border-bottom: 2px solid #f0f0f0; color: var(--accent-red); font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .form-message { display: none; margin-top: 18px; padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
+        .form-message.error { display: block; background: #fdecea; color: #b42318; border: 1px solid #f5c2bd; }
+        .form-message.ok { display: block; background: #e8f8ef; color: #1e8449; border: 1px solid #b7e4c7; }
+        .submit { width: 100%; margin-top: 24px; }
+        .demo { margin-top: 26px; font-size: 0.85rem; color: #4b5563; }
+        .demo summary { cursor: pointer; font-weight: 700; color: var(--primary-dark); }
+        .demo p { margin: 10px 0 6px; }
+        .demo button { margin: 3px 4px 3px 0; }
+        @media (max-width: 600px) { .roles { grid-template-columns: 1fr; } .auth-card { padding: 28px 22px; } }
     </style>
 </head>
 <body>
     <div class="auth-card">
-        <h2 id="title" style="text-align: center; color: #1a1a2e; margin-bottom: 20px; font-weight: 800;">Logistics Portal Login</h2>
-        
-        <div id="status-msg"></div>
+        <h1 class="brand">LOGISTICS ERP</h1>
+        <p class="tagline">Multi-warehouse dispatch for India</p>
 
-        <div id="login-form">
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" id="l-user" placeholder="Enter your username">
-            </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="l-pass" placeholder="••••••••">
-            </div>
-            <button class="btn-auth" onclick="handleLogin()">LOGIN</button>
-            <p id="toggle" onclick="switchMode()">Sign up / Create Account</p>
+        <div id="session-banner" class="notice" hidden></div>
+
+        <div class="tabs" role="tablist">
+            <button type="button" class="tab active" data-tab="login-form">Log in</button>
+            <button type="button" class="tab" data-tab="register-form">Create account</button>
         </div>
 
-        <div id="reg-form" class="hidden">
-            <div class="input-group">
-                <label>System Role</label>
-                <select id="r-role" onchange="toggleDriverFields()">
-                    <option value="manager">Warehouse Manager</option>
-                    <option value="driver">Truck Driver</option>
-                </select>
-            </div>
-            <div class="section-title">Personal Details</div>
-            <div style="display:flex; gap:10px;" class="input-group">
-                <input type="text" id="r-fname" placeholder="First Name">
-                <input type="text" id="r-lname" placeholder="Last Name">
-            </div>
-            <div class="input-group"><input type="email" id="r-email" placeholder="Email Address"></div>
-
-            <div id="driver-details-section" class="hidden">
-                <div class="section-title">Truck Details</div>
-                <div class="input-group"><input type="text" id="r-truck-id" placeholder="Vehicle Registration No. (e.g. 50)"></div>
-                <div style="display:flex; gap:10px;" class="input-group">
-                    <input type="number" id="r-capacity-kg" placeholder="Weight Capacity (kg)">
-                    <input type="number" id="r-capacity-m3" placeholder="Volume Capacity (m3)">
+        <form id="login-form" autocomplete="on">
+            <div class="form-grid">
+                <div class="field wide">
+                    <label for="login-username">Username</label>
+                    <input id="login-username" name="username" autocomplete="username" required>
                 </div>
-                <div class="input-group"><input type="number" id="r-cost-km" placeholder="Cost per km (₹)"></div>
+                <div class="field wide">
+                    <label for="login-password">Password</label>
+                    <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+                </div>
+            </div>
+            <div class="form-message" id="login-message" role="alert"></div>
+            <button class="btn-primary submit" type="submit">Log in</button>
+
+            <details class="demo">
+                <summary>Demo accounts (password <code>Demo@123</code>)</summary>
+                <p>Warehouse managers:</p>
+                <button type="button" class="btn-secondary btn-small" data-demo="admin">admin · Noida</button>
+                <button type="button" class="btn-secondary btn-small" data-demo="sarah_logistics">sarah_logistics · Mumbai</button>
+                <button type="button" class="btn-secondary btn-small" data-demo="mgr.kochi">mgr.kochi</button>
+                <span class="hint">… or mgr.&lt;city&gt; for any of the 20 warehouses</span>
+                <p>Truck drivers (Noida):</p>
+                <button type="button" class="btn-secondary btn-small" data-demo="raam">raam</button>
+                <button type="button" class="btn-secondary btn-small" data-demo="shyam">shyam</button>
+                <button type="button" class="btn-secondary btn-small" data-demo="mohan">mohan</button>
+                <p>Customers:</p>
+                <button type="button" class="btn-secondary btn-small" data-demo="sandhu_grain_traders">sandhu_grain_traders · Noida</button>
+                <button type="button" class="btn-secondary btn-small" data-demo="pillai_distributors">pillai_distributors · Kochi</button>
+            </details>
+        </form>
+
+        <form id="register-form" hidden>
+            <div class="roles" id="role-options">
+                <button type="button" class="role-option active" data-role="customer"><strong>Customer</strong><span>Book shipments and track them</span></button>
+                <button type="button" class="role-option" data-role="driver"><strong>Truck driver</strong><span>Join a warehouse; its manager approves you</span></button>
+                <button type="button" class="role-option" data-role="manager"><strong>Warehouse manager</strong><span>Open a new warehouse in a city</span></button>
             </div>
 
-            <div class="section-title">Credentials</div>
-            <div class="input-group"><input type="text" id="r-user" placeholder="Choose Username"></div>
-            <div style="display:flex; gap:10px;" class="input-group">
-                <input type="password" id="r-p1" placeholder="Password">
-                <input type="password" id="r-p2" placeholder="Confirm">
+            <div class="group-title">About you</div>
+            <div class="form-grid">
+                <div class="field"><label for="r-name">Full name</label><input id="r-name" required maxlength="80"></div>
+                <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" required maxlength="120"></div>
+                <div class="field"><label for="r-phone">Phone <span class="muted">(optional)</span></label><input id="r-phone" type="tel" maxlength="20" placeholder="98765 43210"></div>
             </div>
-            <button class="btn-auth" onclick="handleRegister()">CREATE ACCOUNT</button>
-            <p id="toggle" onclick="switchMode()">Already have an account? Login</p>
-        </div>
+
+            <fieldset data-role="customer">
+                <div class="group-title">Your company</div>
+                <div class="form-grid">
+                    <div class="field"><label for="r-company">Company name</label><input id="r-company" required maxlength="100"></div>
+                    <div class="field"><label for="r-customer-city">City</label><select id="r-customer-city" required></select></div>
+                    <div class="field wide"><label for="r-customer-address">Address</label><input id="r-customer-address" required maxlength="200"></div>
+                </div>
+            </fieldset>
+
+            <fieldset data-role="driver" disabled>
+                <div class="group-title">Driving licence</div>
+                <div class="form-grid">
+                    <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
+                    <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
+                    <div class="field">
+                        <label for="r-licence-class">Licence class</label>
+                        <select id="r-licence-class" required>
+                            <option value="LMV">LMV: light trucks up to 7.5 t</option>
+                            <option value="HMV">HMV: all trucks</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="hint" style="margin-top: 10px;">You can log in once the warehouse manager has approved your application.</p>
+            </fieldset>
+
+            <fieldset data-role="manager" disabled>
+                <div class="group-title">Your warehouse</div>
+                <div class="form-grid">
+                    <div class="field"><label for="r-warehouse-name">Warehouse name</label><input id="r-warehouse-name" required maxlength="60" placeholder="e.g. Goa Coastal Depot"></div>
+                    <div class="field"><label for="r-manager-city">City</label><select id="r-manager-city" required></select></div>
+                    <div class="field wide"><label for="r-manager-address">Warehouse address</label><input id="r-manager-address" required maxlength="200"></div>
+                </div>
+                <p class="hint" style="margin-top: 10px;">Each city has one warehouse for now, so cities that already have one aren't listed. A new warehouse starts with no trucks; add them under Fleet.</p>
+            </fieldset>
+
+            <div class="group-title">Login details</div>
+            <div class="form-grid">
+                <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
+                <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"><span class="hint">At least 8 characters, with a letter and a number</span></div>
+                <div class="field"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
+            </div>
+
+            <div class="form-message" id="register-message" role="alert"></div>
+            <button class="btn-primary submit" type="submit">Create account</button>
+        </form>
     </div>
 
+    <script src="app.js"></script>
     <script>
-        function showStatus(text, type) {
-            const msgBox = document.getElementById('status-msg');
-            msgBox.innerText = text;
-            msgBox.style.display = 'block';
-            msgBox.className = type === 'error' ? 'msg-error' : 'msg-success';
+        const $ = id => document.getElementById(id);
+        let role = 'customer';
+
+        function showMessage(box, text, tone) {
+            box.textContent = text;
+            box.className = `form-message ${tone}`;
         }
 
-        function switchMode() {
-            const isLoginView = document.getElementById('login-form').classList.contains('hidden');
-            document.getElementById('status-msg').style.display = 'none'; // Clear messages on switch
-            if (isLoginView) {
-                document.getElementById('login-form').classList.remove('hidden');
-                document.getElementById('reg-form').classList.add('hidden');
-                document.getElementById('title').innerText = "Logistics Portal Login";
-            } else {
-                document.getElementById('login-form').classList.add('hidden');
-                document.getElementById('reg-form').classList.remove('hidden');
-                document.getElementById('title').innerText = "Employee Registration";
+        // --- Tabs ---
+        function openTab(formId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === formId));
+            $('login-form').hidden = formId !== 'login-form';
+            $('register-form').hidden = formId !== 'register-form';
+        }
+        document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => openTab(tab.dataset.tab)));
+
+        // --- Account type: only the chosen type's fields are shown and required ---
+        document.querySelectorAll('.role-option').forEach(option => option.addEventListener('click', () => {
+            role = option.dataset.role;
+            document.querySelectorAll('.role-option').forEach(o => o.classList.toggle('active', o === option));
+            document.querySelectorAll('fieldset[data-role]').forEach(f => { f.disabled = f.dataset.role !== role; });
+            $('register-message').className = 'form-message';
+        }));
+
+        // --- Demo buttons fill in the login form ---
+        document.querySelectorAll('[data-demo]').forEach(button => button.addEventListener('click', () => {
+            $('login-username').value = button.dataset.demo;
+            $('login-password').value = 'Demo@123';
+            $('login-password').focus();
+        }));
+
+        // --- Lists for the sign-up form come from the server ---
+        async function loadLists() {
+            const catalog = await App.api('/api/catalog');
+            const taken = new Set(catalog.warehouses.map(w => w.city));
+            App.fillSelect($('r-customer-city'), catalog.cities, c => c, c => c, 'Choose your city');
+            App.fillSelect($('r-manager-city'), catalog.cities.filter(c => !taken.has(c)), c => c, c => c, 'Choose a city');
+            App.fillSelect($('r-warehouse'), catalog.warehouses, w => w.id, w => `${w.code} · ${w.name} (${w.city})`, 'Choose a warehouse');
+        }
+
+        // --- Already logged in? Offer to continue or to log out ---
+        async function checkSession() {
+            try {
+                const me = await App.api('/api/me');
+                if (!me.user) return;  // nobody is logged in: just show the forms
+                const banner = $('session-banner');
+                banner.innerHTML = `Logged in as <strong>${App.escape(me.user.full_name)}</strong> (${App.escape(me.user.role)}).
+                    <a href="${App.escape(me.home)}">Continue</a> · <a href="#" id="banner-logout">Log out</a>`;
+                banner.hidden = false;
+                $('banner-logout').addEventListener('click', event => { event.preventDefault(); App.logout(); });
+            } catch (notLoggedIn) {
+                // nobody is logged in: just show the forms
             }
         }
 
-        function toggleDriverFields() {
-            const role = document.getElementById('r-role').value;
-            const driverSection = document.getElementById('driver-details-section');
-            if (role === 'driver') {
-                driverSection.classList.remove('hidden');
-            } else {
-                driverSection.classList.add('hidden');
+        $('login-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = event.submitter || $('login-form').querySelector('button[type=submit]');
+            button.disabled = true;
+            try {
+                const result = await App.api('/api/login', { username: $('login-username').value, password: $('login-password').value });
+                location.href = result.home;
+            } catch (error) {
+                showMessage($('login-message'), error.message, 'error');
+                button.disabled = false;
             }
-        }
+        });
 
-        function handleLogin() {
-            const u = document.getElementById('l-user').value;
-            const p = document.getElementById('l-pass').value;
-            
-            if ((u === 'admin' || u === 'arnav123') && p === '123') {
-                showStatus("Access Granted. Redirecting...", "success");
-                setTimeout(() => {
-                    window.location.href = `index.html?user=${encodeURIComponent(u)}&role=manager`;
-                }, 800);
-            } else if (p === '123' || p.includes('drive')) {
-                showStatus("Access Granted. Redirecting...", "success");
-                setTimeout(() => {
-                    // Redirect a driver straight to the dedicated driver dashboard
-                    window.location.href = `driver.html?user=${encodeURIComponent(u)}`;
-                }, 800);
-            } else {
-                showStatus("Invalid Credentials. Please try again.", "error");
-            }
-        }
-
-        function handleRegister() {
-            if (document.getElementById('r-p1').value !== document.getElementById('r-p2').value) {
-                showStatus("Passwords do not match!", "error");
+        $('register-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const box = $('register-message');
+            if ($('r-password').value !== $('r-password2').value) {
+                showMessage(box, 'The two passwords are not the same', 'error');
                 return;
             }
-            showStatus("Registration Successful!", "success");
-            setTimeout(() => switchMode(), 1200);
-        }
+            const body = {
+                role, full_name: $('r-name').value, email: $('r-email').value, phone: $('r-phone').value,
+                username: $('r-username').value, password: $('r-password').value,
+            };
+            if (role === 'customer') Object.assign(body, { company_name: $('r-company').value, city: $('r-customer-city').value, address: $('r-customer-address').value });
+            if (role === 'driver') Object.assign(body, { warehouse_id: $('r-warehouse').value, licence_no: $('r-licence').value, licence_class: $('r-licence-class').value });
+            if (role === 'manager') Object.assign(body, { warehouse_name: $('r-warehouse-name').value, city: $('r-manager-city').value, address: $('r-manager-address').value });
+
+            const button = $('register-form').querySelector('button[type=submit]');
+            button.disabled = true;
+            try {
+                const result = await App.api('/api/register', body);
+                if (result.home) {
+                    location.href = result.home;   // customers and new managers are logged in straight away
+                    return;
+                }
+                // Drivers wait for approval: show where the request went and prepare the login form
+                $('register-form').reset();
+                openTab('login-form');
+                $('login-username').value = body.username;
+                showMessage($('login-message'), result.message, 'ok');
+            } catch (error) {
+                showMessage(box, error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        loadLists().catch(error => showMessage($('register-message'), error.message, 'error'));
+        checkSession();
     </script>
 </body>
 </html>
