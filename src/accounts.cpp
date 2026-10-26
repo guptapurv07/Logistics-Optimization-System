@@ -11,19 +11,6 @@ using json = nlohmann::json;
 
 namespace {
 
-// The state of every city in network_map.csv, filled in when a manager opens a warehouse there
-const std::map<std::string, std::string> kCityStates = {
-    {"Agra", "Uttar Pradesh"}, {"Ahmedabad", "Gujarat"}, {"Amritsar", "Punjab"}, {"Bangalore", "Karnataka"},
-    {"Bhopal", "Madhya Pradesh"}, {"Bhubaneswar", "Odisha"}, {"Chandigarh", "Chandigarh"}, {"Chennai", "Tamil Nadu"},
-    {"Coimbatore", "Tamil Nadu"}, {"Dehradun", "Uttarakhand"}, {"Delhi", "Delhi"}, {"Goa", "Goa"},
-    {"Gwalior", "Madhya Pradesh"}, {"Hyderabad", "Telangana"}, {"Indore", "Madhya Pradesh"}, {"Jaipur", "Rajasthan"},
-    {"Jodhpur", "Rajasthan"}, {"Kanpur", "Uttar Pradesh"}, {"Kochi", "Kerala"}, {"Kolkata", "West Bengal"},
-    {"Lucknow", "Uttar Pradesh"}, {"Ludhiana", "Punjab"}, {"Madurai", "Tamil Nadu"}, {"Mumbai", "Maharashtra"},
-    {"Mysore", "Karnataka"}, {"Nagpur", "Maharashtra"}, {"Nashik", "Maharashtra"}, {"Noida", "Uttar Pradesh"},
-    {"Patna", "Bihar"}, {"Prayagraj", "Uttar Pradesh"}, {"Pune", "Maharashtra"}, {"Surat", "Gujarat"},
-    {"Trivandrum", "Kerala"}, {"Varanasi", "Uttar Pradesh"}, {"Vijayawada", "Andhra Pradesh"},
-    {"Visakhapatnam", "Andhra Pradesh"}};
-
 std::string lowercase(std::string text) {
     std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return char(std::tolower(c)); });
     return text;
@@ -89,7 +76,8 @@ const std::string kUnknownUserHash = hashPassword("no-such-user-1");
 
 }  // namespace
 
-json registerAccount(Database& db, const json& body, const RoadNetwork& network) {
+json registerAccount(Database& db, const json& body, const RoadMap& roadMap) {
+    const RoadNetwork& network = roadMap.network;
     Fields fields(body);
     std::string role = fields.text("role", "Account type", 1, 20);
     if (role != "customer" && role != "driver" && role != "manager") {
@@ -180,11 +168,11 @@ json registerAccount(Database& db, const json& body, const RoadNetwork& network)
         char code[16], employeeCode[16];
         std::snprintf(code, sizeof(code), "WH-%02lld", static_cast<long long>(next.columnInt(0)));
         std::snprintf(employeeCode, sizeof(employeeCode), "MGR-%03lld", static_cast<long long>(next.columnInt(1)));
-        auto state = kCityStates.find(city);
+        auto info = roadMap.cities.find(city);   // the city was checked against the road map above
 
         Statement addWarehouse = db.prepare("INSERT INTO warehouses (code, name, city, state, address) VALUES (?1, ?2, ?3, ?4, ?5)");
         addWarehouse.bind(1, std::string(code)).bind(2, warehouseName).bind(3, city)
-            .bind(4, state != kCityStates.end() ? state->second : std::string("India")).bind(5, address).run();
+            .bind(4, info != roadMap.cities.end() ? info->second.state : std::string("India")).bind(5, address).run();
         std::int64_t newWarehouseId = db.lastInsertId();
         Statement addManager = db.prepare("INSERT INTO managers (user_id, warehouse_id, employee_code) VALUES (?1, ?2, ?3)");
         addManager.bind(1, userId).bind(2, newWarehouseId).bind(3, std::string(employeeCode)).run();

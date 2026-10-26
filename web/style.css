@@ -25,7 +25,7 @@
     --neutral: #555555; --neutral-soft: #EFEFEF;
 
     /* Network map */
-    --map-road: #DEDEDE;
+    --map-road: #B4B4B4;      /* roads on the grey map tiles */
     --map-city: #BDBDBD;
     --map-label: #666666;
     --map-origin: #222222;
@@ -86,7 +86,7 @@
     --danger: #F4A49B; --danger-soft: #3A1714;
     --neutral: #BDBDBD; --neutral-soft: #2A2A2A;
 
-    --map-road: #333333;
+    --map-road: #5C5C5C;
     --map-city: #555555;
     --map-label: #A3A3A3;
     --map-origin: #EDEDED;

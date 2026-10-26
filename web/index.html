@@ -15,8 +15,19 @@
         .map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
         .map-layout .panel + .panel { margin-top: 0; }  /* side by side here, not stacked */
         .map-panel { padding: 0; overflow: hidden; }
-        .map-bar { display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
-        .map-bar span:last-child { color: var(--muted); font-size: 0.86rem; }
+        .map-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 10px 9px 18px; border-bottom: 1px solid var(--line); }
+        .map-tools { display: flex; align-items: center; gap: 12px; }
+        #map-status { color: var(--muted); font-size: 0.86rem; }
+        /* Full-screen button: the usual corner icons on a plain rounded square that turns grey under the pointer */
+        .map-full { width: 34px; height: 34px; display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: 9px;
+            background: var(--surface); color: var(--text); cursor: pointer; transition: background-color var(--speed) ease-out; }
+        .map-full:hover { background: var(--box-hover); }
+        .map-full:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .map-full .icon { width: 20px; height: 20px; stroke-width: 2.2; }
+        /* Full screen: only the map panel, filling the whole screen */
+        .map-panel.maximized { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; height: 100vh; height: 100dvh;
+            border: 0; border-radius: 0; }
+        .map-panel.maximized #trip-map { flex: 1; height: auto; min-height: 0; }
         #trip-map { width: 100%; height: max(480px, calc(100vh - 280px)); background: var(--box); font-family: var(--font); }   /* as tall as the window allows */
         /* Leaflet's own controls and boxes, in TruckSetu colours */
         .leaflet-bar { border: 1px solid var(--line-strong) !important; border-radius: var(--radius) !important; overflow: hidden; box-shadow: none !important; }
@@ -48,12 +59,15 @@
         .trip-swatch { display: inline-block; width: 22px; height: 4px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
         .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.82rem; }
         .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+        .dot-small { width: 7px; height: 7px; vertical-align: 0; }
         .trip-item { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
         .trip-item:last-child { border-bottom: 0; padding-bottom: 0; }
         .trip-item:first-child { padding-top: 0; }
         .trip-item .btn { justify-self: start; }
         .truck-form { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; max-width: 980px; }   /* one row: model, plate, button */
-        @media (max-width: 1200px) { .map-layout { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 1200px) {
+            .map-layout { grid-template-columns: minmax(0, 1fr); }
+        }
         @media (max-width: 760px) { .truck-form { grid-template-columns: minmax(0, 1fr); } }
     </style>
 </head>
@@ -196,13 +210,20 @@
             <section id="view-map" class="view-section" hidden>
                 <div class="page-head"><div><h1>Network map</h1><p>Routes of the trips on the road, from this warehouse</p></div></div>
                 <div class="map-layout">
-                    <div class="panel map-panel">
-                        <div class="map-bar"><strong>India road network</strong><span id="map-status">Loading…</span></div>
+                    <div class="panel map-panel" id="map-panel">
+                        <div class="map-bar">
+                            <strong>India road network</strong>
+                            <div class="map-tools">
+                                <span id="map-status">Loading…</span>
+                                <button type="button" class="map-full" id="map-full" title="Full screen" aria-label="Full screen"><svg class="icon" aria-hidden="true"><use href="#i-fullscreen"/></svg></button>
+                            </div>
+                        </div>
                         <div id="trip-map"></div>
                         <div class="legend">
                             <span><span class="dot" style="background: var(--map-origin)"></span>Your warehouse</span>
+                            <span><span class="dot" style="background: var(--map-label)"></span>Other warehouses</span>
+                            <span><span class="dot dot-small" style="background: var(--map-city)"></span>City</span>
                             <span><span class="trip-swatch" style="background: var(--route-1)"></span>Trip route, one colour per trip</span>
-                            <span><span class="dot" style="background: var(--map-city)"></span>City</span>
                             <span>Truck positions are estimated at 50 km/h · click a city or hover a road for details</span>
                         </div>
                     </div>
@@ -443,26 +464,64 @@
         }));
 
         // --- Network map: Leaflet on a real map of India (grey map tiles by Esri, free without a key) ---
-        // Where each city is (latitude, longitude); the cities and roads themselves come from the server
-        const CITY_COORDS = {
-            Agra: [27.18, 78.01], Ahmedabad: [23.02, 72.57], Amritsar: [31.63, 74.87], Bangalore: [12.97, 77.59], Bhopal: [23.26, 77.41],
-            Bhubaneswar: [20.30, 85.82], Chandigarh: [30.73, 76.78], Chennai: [13.08, 80.27], Coimbatore: [11.02, 76.96], Dehradun: [30.32, 78.03],
-            Delhi: [28.61, 77.21], Goa: [15.49, 73.83], Gwalior: [26.22, 78.18], Hyderabad: [17.39, 78.49], Indore: [22.72, 75.86],
-            Jaipur: [26.91, 75.79], Jodhpur: [26.24, 73.02], Kanpur: [26.45, 80.33], Kochi: [9.93, 76.27], Kolkata: [22.57, 88.36],
-            Lucknow: [26.85, 80.95], Ludhiana: [30.90, 75.86], Madurai: [9.93, 78.12], Mumbai: [19.08, 72.88], Mysore: [12.30, 76.64],
-            Nagpur: [21.15, 79.09], Nashik: [20.00, 73.79], Noida: [28.54, 77.39], Patna: [25.59, 85.14], Prayagraj: [25.44, 81.85],
-            Pune: [18.52, 73.86], Surat: [21.17, 72.83], Trivandrum: [8.52, 76.94], Varanasi: [25.32, 82.97], Vijayawada: [16.51, 80.65],
-            Visakhapatnam: [17.69, 83.22],
-        };
-        // Cities close to a neighbour get their name on the left so the two labels don't overlap
-        const LABEL_LEFT = new Set(['Delhi', 'Mumbai', 'Mysore', 'Kochi', 'Kanpur', 'Prayagraj', 'Jodhpur', 'Amritsar', 'Ludhiana']);
+        // City positions and each road's real path come from the server (data/cities.csv and data/road_shapes.csv)
         const TILES = { light: 'World_Light_Gray_Base', dark: 'World_Dark_Gray_Base' };
         const AVERAGE_SPEED_KMH = 50;   // the same estimate the driver page uses
         const ROUTE_COLOURS = 8;        // --route-1 … --route-8; a ninth trip on the road at once is drawn in --route-other
         const tripSlots = new Map();    // trip id → colour slot, kept while the trip is on the road so colours never shift
         let leafletMap = null, tileLayer = null, overlay = null, truckLayer = null, cityLabels = [], truckPins = [];
+        const cityAt = new Map();     // city → [latitude, longitude]
+        const roadPaths = new Map();  // "A|B" (A-Z) → the road's path as [latitude, longitude] points
 
         const lastCity = trip => (trip.route.path || []).slice(-1)[0] || '';
+        const pairKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+        const squaredDistance = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+
+        // Google's encoded polyline format (precision 5), the way data/road_shapes.csv stores each road's path
+        function decodePolyline(text) {
+            const points = [];
+            let index = 0, lat = 0, lng = 0;
+            while (index < text.length) {
+                const deltas = [0, 0].map(() => {
+                    let shift = 0, result = 0, byte;
+                    do {
+                        byte = text.charCodeAt(index++) - 63;
+                        result |= (byte & 0x1f) << shift;
+                        shift += 5;
+                    } while (byte >= 0x20);
+                    return result & 1 ? ~(result >> 1) : result >> 1;
+                });
+                lat += deltas[0];
+                lng += deltas[1];
+                points.push([lat / 1e5, lng / 1e5]);
+            }
+            return points;
+        }
+
+        // The road from one city to its neighbour; a straight line when its path is unknown (e.g. a trip planned on an older map)
+        function pathBetween(from, to) {
+            const a = cityAt.get(from), b = cityAt.get(to);
+            if (!a || !b) return [];
+            const points = roadPaths.get(pairKey(from, to));
+            if (!points) return [a, b];
+            return squaredDistance(points[0], a) <= squaredDistance(points[0], b) ? points : [...points].reverse();
+        }
+
+        // A trip's whole route along its roads, from the warehouse to the delivery city
+        const routePath = trip => (trip.route.legs || []).flatMap(leg => pathBetween(leg.from, leg.to));
+
+        // The point a fraction (0 to 1) of the way along a path; between nearby points a flat-earth distance is enough
+        function pointAlong(points, fraction) {
+            const hop = (p, q) => Math.hypot(q[0] - p[0], (q[1] - p[1]) * Math.cos(p[0] * Math.PI / 180));
+            const lengths = [0];
+            for (let i = 1; i < points.length; i++) lengths.push(lengths[i - 1] + hop(points[i - 1], points[i]));
+            const target = Math.min(1, Math.max(0, fraction)) * lengths[lengths.length - 1];
+            let i = 1;
+            while (i < points.length - 1 && lengths[i] < target) i++;
+            const span = lengths[i] - lengths[i - 1];
+            const f = span ? (target - lengths[i - 1]) / span : 0;
+            return [points[i - 1][0] + (points[i][0] - points[i - 1][0]) * f, points[i - 1][1] + (points[i][1] - points[i - 1][1]) * f];
+        }
         const tripColour = tripId => App.token(tripSlots.has(tripId) ? `--route-${tripSlots.get(tripId)}` : '--route-other');
 
         // A trip takes the first free colour when it appears and gives it back when it finishes
@@ -489,7 +548,7 @@
                 </div>`).join('') : '<p class="empty">No trips on the road.</p>';
         }
 
-        // Where the truck should be by now: time since it left (or delivered) × the average speed, along its route's roads
+        // Where the truck should be by now: time since it left (or delivered) × the average speed, along its roads
         function truckPosition(trip) {
             const legs = trip.route.legs || [];
             const total = legs.reduce((sum, leg) => sum + leg.km, 0);
@@ -499,10 +558,9 @@
             const done = Math.min(total, kmSince(returning ? trip.delivered_at : trip.dispatched_at));
             let along = returning ? total - done : done;
             for (const leg of legs) {
-                const from = CITY_COORDS[leg.from], to = CITY_COORDS[leg.to];
-                if (along <= leg.km && from && to) {
-                    const f = along / leg.km;
-                    return { latlng: [from[0] + (to[0] - from[0]) * f, from[1] + (to[1] - from[1]) * f], done, total, returning };
+                if (along <= leg.km) {
+                    const road = pathBetween(leg.from, leg.to);
+                    return road.length > 1 ? { latlng: pointAlong(road, leg.km ? along / leg.km : 0), done, total, returning } : null;
                 }
                 along -= leg.km;
             }
@@ -529,14 +587,14 @@
         }
 
         function networkBounds() {
-            return L.latLngBounds(roads.cities.map(c => CITY_COORDS[c]).filter(Boolean));
+            return L.latLngBounds([...cityAt.values()]);
         }
 
         // Shows the chosen trip's route, or the whole network
         function fitMap() {
             if (!leafletMap) return;
             const trip = data.active_trips.find(t => t.id === focusedTrip);
-            const points = trip ? (trip.route.path || []).map(c => CITY_COORDS[c]).filter(Boolean) : [];
+            const points = trip ? routePath(trip) : [];
             leafletMap.fitBounds(points.length > 1 ? L.latLngBounds(points) : networkBounds(),
                                  { paddingTopLeft: [40, 70], paddingBottomRight: [40, 30], maxZoom: 7 });   // room above for truck labels
             $('map-status').textContent = trip ? `Showing trip #${trip.id}` : `${roads.cities.length} cities · ${roads.roads.length} roads`;
@@ -551,7 +609,11 @@
 
         async function openMap() {
             if (typeof L === 'undefined') throw new Error('The map library could not be loaded (it needs an internet connection)');
-            roads = roads || await App.api('/api/network');
+            if (!roads) {
+                roads = await App.api('/api/network');
+                roads.cities.forEach(city => cityAt.set(city.name, [city.lat, city.lng]));
+                roads.roads.forEach(road => { if (road.shape) roadPaths.set(pairKey(road.from, road.to), decodePolyline(road.shape)); });
+            }
             if (leafletMap) {
                 leafletMap.invalidateSize();   // the map was hidden while another page was open
                 return;
@@ -574,19 +636,19 @@
             const trips = data.active_trips;
             const faded = trip => focusedTrip !== null && trip.id !== focusedTrip;
 
-            // Roads: a thin line, plus a wide invisible one on top so they are easy to hover
+            // Roads along their real paths: a thin line, plus a wide invisible one on top so they are easy to hover
             roads.roads.forEach(r => {
-                const ends = [CITY_COORDS[r.from], CITY_COORDS[r.to]];
-                if (!ends[0] || !ends[1]) return;
-                L.polyline(ends, { color: t('--map-road'), weight: 1.5, interactive: false }).addTo(overlay);
-                L.polyline(ends, { opacity: 0, weight: 14, className: 'road-hit' })
+                const line = pathBetween(r.from, r.to);
+                if (line.length < 2) return;
+                L.polyline(line, { color: t('--map-road'), weight: 1.5, interactive: false }).addTo(overlay);
+                L.polyline(line, { opacity: 0, weight: 14, className: 'road-hit' })
                     .bindTooltip(`<strong>${E(r.from)} – ${E(r.to)}</strong><br>${E(r.road)} · ${App.formatNumber(r.km)} km`, { sticky: true, className: 'map-tip' })
                     .addTo(overlay);
             });
 
             // Trip routes: the trip's colour on a light casing, with dots flowing the way the truck drives
             trips.forEach(trip => {
-                const points = (trip.route.path || []).map(c => CITY_COORDS[c]).filter(Boolean);
+                const points = routePath(trip);
                 if (points.length < 2) return;
                 const opacity = faded(trip) ? 0.15 : 1;
                 L.polyline(points, { color: surface, weight: 8, opacity, interactive: false }).addTo(overlay);
@@ -600,31 +662,31 @@
                 }
             });
 
-            // Cities: your warehouse in ink, delivery cities in their trip's colour, the rest small and grey
+            // Cities: your warehouse in ink, delivery cities in their trip's colour, other warehouses mid grey, the rest small and light
             cityLabels = [];
-            roads.cities.forEach(city => {
-                const at = CITY_COORDS[city];
-                if (!at) return;
+            const warehouseCities = new Set((catalog.warehouses || []).map(w => w.city));
+            roads.cities.forEach(({ name: city }) => {
                 const home = city === data.warehouse.city;
                 const delivery = trips.find(trip => lastCity(trip) === city && !faded(trip));
+                const warehouse = warehouseCities.has(city);
                 const style = home ? { radius: 7, fillColor: t('--map-origin'), weight: 2 }
                             : delivery ? { radius: 6, fillColor: tripColour(delivery.id), weight: 2 }
-                            : { radius: 4, fillColor: t('--map-city'), weight: 1.5 };
-                const left = LABEL_LEFT.has(city);
+                            : warehouse ? { radius: 4.5, fillColor: t('--map-label'), weight: 1.5 }
+                            : { radius: 3.5, fillColor: t('--map-city'), weight: 1.5 };
                 const onRoute = trips.some(trip => !faded(trip) && (trip.route.path || []).includes(city));
-                const marker = L.circleMarker(at, { ...style, color: surface, fillOpacity: 1 })
-                    .bindTooltip(E(city), { permanent: true, direction: left ? 'left' : 'right', offset: [left ? -5 : 5, 0],
+                const marker = L.circleMarker(cityAt.get(city), { ...style, color: surface, fillOpacity: 1 })
+                    .bindTooltip(E(city), { permanent: true, direction: 'right', offset: [5, 0],
                                             className: `city-label${home ? ' strong home' : delivery ? ' strong' : ''}` })
                     .bindPopup(() => cityCard(city))
                     .addTo(overlay);
-                cityLabels.push({ tooltip: marker.getTooltip(), priority: home ? 3 : delivery ? 2 : onRoute ? 1 : 0 });
+                cityLabels.push({ tooltip: marker.getTooltip(), priority: home ? 4 : delivery ? 3 : onRoute ? 2 : warehouse ? 1 : 0 });
             });
 
             drawTrucks();
         }
 
-        // Trucks: a dot at each estimated spot, and a label above it; trucks closer than 40 px on screen share one label.
-        // Redrawn after every zoom, because what is "close" depends on the zoom.
+        // Trucks: a dot at each estimated spot, and a label above it; trucks whose labels would overlap share one label.
+        // Redrawn after every zoom, because what overlaps depends on the zoom.
         function drawTrucks() {
             if (truckLayer) truckLayer.remove();
             truckLayer = L.layerGroup().addTo(leafletMap);
@@ -638,7 +700,7 @@
                 const opacity = faded(trip) ? 0.35 : 1;
                 L.circleMarker(where.latlng, { radius: 5, color: surface, weight: 2, fillColor: tripColour(trip.id), fillOpacity: opacity, opacity, interactive: false }).addTo(truckLayer);
                 const point = leafletMap.latLngToLayerPoint(where.latlng);
-                const near = groups.find(group => group.point.distanceTo(point) < 40);
+                const near = groups.find(group => Math.abs(group.point.x - point.x) < 110 && Math.abs(group.point.y - point.y) < 30);   // about a label's size
                 if (near) near.trucks.push({ trip, where });
                 else groups.push({ point, latlng: where.latlng, trucks: [{ trip, where }] });
             });
@@ -655,20 +717,52 @@
             requestAnimationFrame(declutterLabels);
         }
 
-        // Hides city names that would overlap a truck label or a more important name. Your warehouse's name always stays;
-        // after it come delivery cities, then cities on a route, then the rest.
+        // Places city names so they don't overlap a truck label or a more important name: right of the dot, else left,
+        // else hidden (your warehouse's name goes below its dot instead). After it come delivery cities, cities on a route,
+        // other warehouses, then the rest.
         function declutterLabels() {
             const kept = truckPins.map(pin => pin.getElement() && pin.getElement().firstElementChild).filter(Boolean).map(el => el.getBoundingClientRect());
+            const clashes = box => kept.some(k => box.left < k.right + 2 && box.right > k.left - 2 && box.top + 3 < k.bottom && box.bottom - 3 > k.top);   // a label's box is taller than its text
+            const place = (tooltip, side) => {
+                tooltip.options.direction = side;
+                tooltip.options.offset = L.point({ left: [-5, 0], right: [5, 0], bottom: [0, 4] }[side]);
+                tooltip.update();
+                return tooltip.getElement().getBoundingClientRect();
+            };
             [...cityLabels].sort((a, b) => b.priority - a.priority).forEach(({ tooltip, priority }) => {
                 const element = tooltip.getElement();
                 if (!element) return;
                 element.style.visibility = '';
-                const box = element.getBoundingClientRect();
-                const clash = kept.some(k => box.left < k.right + 2 && box.right > k.left - 2 && box.top + 3 < k.bottom && box.bottom - 3 > k.top);   // a label's box is taller than its text
-                if (clash && priority < 3) element.style.visibility = 'hidden';
-                else kept.push(box);
+                let box = place(tooltip, 'right');
+                if (clashes(box)) {
+                    const leftBox = place(tooltip, 'left');
+                    if (!clashes(leftBox)) box = leftBox;
+                    else if (priority < 4) return void (element.style.visibility = 'hidden');
+                    else box = place(tooltip, 'bottom');   // your warehouse's name always shows: below the dot if both sides are taken
+                }
+                kept.push(box);
             });
         }
+
+        // Full screen uses the browser's real full screen where it can; otherwise the map just covers the page. Esc leaves either way.
+        function setMapMaximized(on) {
+            const button = $('map-full'), label = on ? 'Exit full screen' : 'Full screen';
+            $('map-panel').classList.toggle('maximized', on);
+            button.innerHTML = App.icon(on ? 'fullscreen-exit' : 'fullscreen');
+            button.title = label;
+            button.setAttribute('aria-label', label);
+            requestAnimationFrame(() => { if (leafletMap) { leafletMap.invalidateSize(); fitMap(); } });   // once the new size is laid out
+        }
+        $('map-full').addEventListener('click', () => {
+            const panel = $('map-panel'), on = !panel.classList.contains('maximized');
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (on && panel.requestFullscreen) panel.requestFullscreen().catch(() => setMapMaximized(true));
+            else setMapMaximized(on);
+        });
+        document.addEventListener('fullscreenchange', () => setMapMaximized(document.fullscreenElement === $('map-panel')));
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !document.fullscreenElement && $('map-panel').classList.contains('maximized')) setMapMaximized(false);
+        });
 
         window.addEventListener('themechange', () => {
             if (leafletMap) { setTiles(); drawMap(); }

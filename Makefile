@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -O2 -I include -pthread -MMD -MP
 LDLIBS = -lsqlite3
 
 OBJS = src/main.o src/routing.o src/db.o src/schema.o src/password.o src/seed.o \
-       src/api.o src/accounts.o src/orders.o src/dispatch.o src/manager.o src/server.o
+       src/api.o src/accounts.o src/orders.o src/dispatch.o src/manager.o src/server.o src/network.o
 TARGET = app
 DATABASE = data/logistics.db
 

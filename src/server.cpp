@@ -147,10 +147,11 @@ json catalogJson(Database& db, const RoadNetwork& network) {
     return {{"cities", cities}, {"warehouses", warehouses}, {"goods", goods}, {"truck_models", models}, {"body_types", bodies}};
 }
 
-// Every pair of cities once, with its shortest road, for drawing the map
-json networkJson(const RoadNetwork& network) {
+// For drawing the map: every city with its position, and every pair of neighbouring cities once,
+// with its shortest road and that road's path
+json networkJson(const RoadMap& roadMap) {
     std::map<std::pair<std::string, std::string>, Edge> shortest;
-    for (const auto& [city, roads] : network) {
+    for (const auto& [city, roads] : roadMap.network) {
         for (const Edge& road : roads) {
             if (city >= road.to) continue;
             auto key = std::make_pair(city, road.to);
@@ -159,17 +160,24 @@ json networkJson(const RoadNetwork& network) {
         }
     }
     json cities = json::array(), roads = json::array();
-    for (const auto& [city, unused] : network) cities.push_back(city);
+    for (const auto& [name, unused] : roadMap.network) {
+        const CityInfo& city = roadMap.cities.at(name);  // the loader only keeps roads between known cities
+        cities.push_back({{"name", name}, {"state", city.state}, {"lat", city.latitude}, {"lng", city.longitude}});
+    }
     for (const auto& [pair, road] : shortest) {
-        roads.push_back({{"from", pair.first}, {"to", pair.second}, {"km", road.weight}, {"road", road.type}});
+        json entry = {{"from", pair.first}, {"to", pair.second}, {"km", road.weight}, {"road", road.type}};
+        auto shape = roadMap.shapes.find(pair);
+        if (shape != roadMap.shapes.end()) entry["shape"] = shape->second;
+        roads.push_back(entry);
     }
     return {{"cities", cities}, {"roads", roads}};
 }
 
 }  // namespace
 
-void registerRoutes(httplib::Server& server, const RoadNetwork& network, const std::string& databasePath) {
+void registerRoutes(httplib::Server& server, const RoadMap& roadMap, const std::string& databasePath) {
     gDatabasePath = databasePath;
+    const RoadNetwork& network = roadMap.network;
 
     // --- PAGE GUARDS ---
     // A role's page is only served to a logged-in user with that role; anyone else lands on the login page
@@ -208,13 +216,13 @@ void registerRoutes(httplib::Server& server, const RoadNetwork& network, const s
         sendJson(res, catalogJson(threadDatabase(), network));
     }));
 
-    server.Get("/api/network", api([&network](const Request&, Response& res) {
-        sendJson(res, networkJson(network));
+    server.Get("/api/network", api([&roadMap](const Request&, Response& res) {
+        sendJson(res, networkJson(roadMap));
     }));
 
-    server.Post("/api/register", api([&network](const Request& req, Response& res) {
+    server.Post("/api/register", api([&roadMap](const Request& req, Response& res) {
         Database& db = threadDatabase();
-        json result = registerAccount(db, parseBody(req), network);
+        json result = registerAccount(db, parseBody(req), roadMap);
         // Customers and new managers are logged in straight away; drivers wait for their manager
         if (result["can_login"].get<bool>()) {
             setSessionCookie(res, createSession(db, result["user_id"].get<std::int64_t>()), kSessionHours * 3600);

@@ -1,126 +1,153 @@
 source,destination,distance_km,route_type
-Dehradun,Noida,250,NH-58 Main Highway
-Dehradun,Noida,280,Via Saharanpur NH-709
-Dehradun,Chandigarh,170,NH-72 Direct
-Dehradun,Chandigarh,210,Via Paonta Sahib
-Chandigarh,Delhi,245,NH-44 Direct
-Chandigarh,Delhi,270,Via Ambala NH-44 Alternate
-Chandigarh,Amritsar,220,NH-44 Expressway
-Chandigarh,Amritsar,250,Via Ludhiana NH-95
-Amritsar,Ludhiana,140,GT Road NH-1
-Amritsar,Ludhiana,165,Via Jalandhar NH-344
-Amritsar,Delhi,450,NH-44 Express
-Amritsar,Delhi,490,Via Ludhiana NH-44
-Ludhiana,Delhi,310,NH-44 Direct
-Ludhiana,Delhi,340,Via Ambala NH-152
-Noida,Delhi,30,Expressway DND
-Noida,Delhi,45,Via NH-24 City Road
-Noida,Agra,190,Yamuna Expressway
-Noida,Agra,210,Via Old NH-2
-Noida,Jaipur,280,NH-48 Direct
-Noida,Jaipur,310,Via Alwar NH-248
-Noida,Lucknow,570,NH-27 Expressway
-Noida,Lucknow,600,Via Kanpur Old Road
-Delhi,Jaipur,270,NH-48 Main
-Delhi,Jaipur,300,Via Gurugram NH-48 Alternate
-Delhi,Lucknow,500,NH-27 Expressway
-Delhi,Lucknow,545,Via Agra NH-19
-Delhi,Chandigarh,245,NH-44 Main
-Delhi,Chandigarh,275,Via Panipat NH-44
-Delhi,Agra,200,NH-44 Direct
-Delhi,Agra,220,Via Mathura NH-44
-Jaipur,Agra,240,NH-21 Direct
-Jaipur,Agra,270,Via Bharatpur State Road
-Jaipur,Ahmedabad,670,NH-48 Express
-Jaipur,Ahmedabad,710,Via Chittorgarh NH-76
-Jaipur,Jodhpur,330,NH-62 Direct
-Jaipur,Jodhpur,360,Via Ajmer NH-58
-Jodhpur,Ahmedabad,450,NH-25 Direct
-Jodhpur,Ahmedabad,490,Via Pali-Sirohi
-Agra,Lucknow,330,Agra-Lucknow Expressway
-Agra,Lucknow,380,Via Kanpur NH-27
-Agra,Gwalior,120,NH-44 Direct
-Agra,Gwalior,145,Via Dholpur State Road
-Gwalior,Bhopal,420,NH-44 Main
-Gwalior,Bhopal,460,Via Jhansi NH-44 Alternate
-Bhopal,Nagpur,350,NH-44 Direct
-Bhopal,Nagpur,390,Via Chhindwara NH-347
-Bhopal,Indore,190,NH-347 Direct
-Bhopal,Indore,220,Via Dewas NH-47
-Indore,Ahmedabad,390,NH-48 Main
-Indore,Ahmedabad,430,Via Vadodara NH-48 Alternate
-Indore,Mumbai,580,NH-48 Direct
-Indore,Mumbai,620,Via Pune NH-48
-Indore,Nagpur,480,NH-44 Direct
-Indore,Nagpur,510,Via Betul NH-347
-Lucknow,Varanasi,320,Purvanchal Expressway
-Lucknow,Varanasi,370,Via Old NH-29
-Lucknow,Kanpur,80,NH-27 Direct
-Lucknow,Kanpur,100,Via Old Kanpur Road
-Kanpur,Prayagraj,200,NH-19 Direct
-Kanpur,Prayagraj,230,Via Fatehpur NH-2
-Prayagraj,Varanasi,120,NH-19 Direct
-Prayagraj,Varanasi,145,Via Mirzapur State Road
-Varanasi,Patna,250,NH-19 Direct
-Varanasi,Patna,290,Via Ghazipur NH-19 Alternate
-Patna,Kolkata,580,NH-19 Direct
-Patna,Kolkata,630,Via NH-80 Bhagalpur
-Varanasi,Kolkata,680,NH-19 Expressway
-Varanasi,Kolkata,720,Via Gaya NH-2
-Ahmedabad,Mumbai,520,NE-1 Expressway
-Ahmedabad,Mumbai,560,Via Old NH-48
-Ahmedabad,Surat,270,NH-48 Express
-Ahmedabad,Surat,300,Via Anand Old Highway
-Surat,Mumbai,280,NH-48 Direct
-Surat,Mumbai,310,Via Thane Old Highway
-Mumbai,Pune,150,Mumbai-Pune Expressway
-Mumbai,Pune,180,Via Old NH-4 Bypasses
-Mumbai,Nashik,170,NH-60 Direct
-Mumbai,Nashik,200,Via Thane Kalyan Road
-Mumbai,Bangalore,980,NH-48 Main
-Mumbai,Bangalore,1050,Via Kolhapur NH-48 Alt
-Nashik,Pune,210,NH-60 Main
-Nashik,Pune,240,Via Sangamner State Road
-Nagpur,Hyderabad,500,NH-44 Direct
-Nagpur,Hyderabad,540,Via Adilabad NH-7
-Nagpur,Kolkata,1050,NH-53 Direct
-Nagpur,Kolkata,1120,Via Raipur NH-53 Alt
-Pune,Hyderabad,560,NH-65 Direct
-Pune,Hyderabad,610,Via Solapur NH-65 Alternate
-Pune,Goa,440,NH-48 Main
-Pune,Goa,480,Via Kolhapur NH-48 Alternate
-Goa,Bangalore,560,NH-48 Direct
-Goa,Bangalore,610,Via Hubli NH-67
-Hyderabad,Bangalore,570,NH-44 Direct
-Hyderabad,Bangalore,620,Via Kurnool NH-440
-Hyderabad,Vijayawada,270,NH-65 Direct
-Hyderabad,Vijayawada,310,Via Nalgonda NH-565
-Vijayawada,Chennai,430,NH-16 Coastal Expressway
-Vijayawada,Chennai,480,Via Nellore NH-16 Alternate
-Vijayawada,Visakhapatnam,350,NH-16 Direct
-Vijayawada,Visakhapatnam,390,Via Eluru NH-214
-Visakhapatnam,Kolkata,900,NH-16 Main
-Visakhapatnam,Kolkata,960,Via Bhubaneswar NH-18
-Kolkata,Bhubaneswar,440,NH-16 Direct
-Kolkata,Bhubaneswar,490,Via Kharagpur NH-6
-Bhubaneswar,Visakhapatnam,460,NH-16 Direct
-Bhubaneswar,Visakhapatnam,510,Via Parlakhemundi NH-326
-Kolkata,Chennai,1670,NH-16 Coastal Highway
-Kolkata,Chennai,1780,Via Raipur-Hyderabad Interior
-Bangalore,Chennai,350,NH-48 Direct
-Bangalore,Chennai,380,Via Vellore NH-48 Alternate
-Bangalore,Mysore,145,NH-275 Direct
-Bangalore,Mysore,170,Via Mandya State Road
-Chennai,Madurai,460,NH-38 Direct
-Chennai,Madurai,510,Via Trichy NH-45
-Madurai,Coimbatore,210,NH-83 Direct
-Madurai,Coimbatore,245,Via Dindigul NH-44
-Coimbatore,Bangalore,360,NH-275 Direct
-Coimbatore,Bangalore,400,Via Salem NH-47
-Coimbatore,Kochi,190,NH-544 Direct
-Coimbatore,Kochi,220,Via Palakkad NH-544 Alternate
-Kochi,Trivandrum,210,NH-66 Direct
-Kochi,Trivandrum,240,Via Alappuzha NH-66 Coastal
-Mysore,Bangalore,145,NH-275 Direct
-Mysore,Coimbatore,220,NH-181 Direct
-Mysore,Coimbatore,260,Via Ooty Hill Road
+Srinagar,Jammu,240,NH-44
+Jammu,Jalandhar,220,NH-44
+Jammu,Amritsar,210,NH-44 / NH-54
+Amritsar,Jalandhar,80,NH-3
+Jalandhar,Ludhiana,60,NH-44
+Ludhiana,Chandigarh,100,NH-5
+Ludhiana,Ambala,110,NH-44
+Chandigarh,Ambala,45,Ambala Chandigarh Expressway
+Chandigarh,Shimla,115,NH-5
+Chandigarh,Dehradun,165,NH-7
+Dehradun,Shimla,260,NH-7 / NH-5
+Ambala,Panipat,120,NH-44
+Panipat,Delhi,110,NH-44
+Dehradun,Haridwar,50,NH-7
+Haridwar,Meerut,150,NH-334 / NH-334A
+Haridwar,Moradabad,155,SH-49 / NH-34
+Meerut,Noida,70,Delhi - Meerut Expressway
+Meerut,Delhi,80,Delhi - Meerut Expressway
+Noida,Delhi,25,Noida-Greater Noida Expressway
+Noida,Mathura,140,Yamuna Expressway
+Delhi,Mathura,145,NH-44
+Mathura,Agra,60,NH-44 / NH-19
+Noida,Moradabad,160,NH-9
+Moradabad,Bareilly,95,NH-530
+Bareilly,Lucknow,250,NH-731
+Delhi,Jaipur,300,Delhi - Vadodara Expressway
+Delhi,Bikaner,445,NH-11
+Agra,Lucknow,330,Agra - Lucknow Expressway
+Agra,Gwalior,120,NH-44
+Agra,Jaipur,240,NH-21
+Agra,Kanpur,275,NH-19
+Lucknow,Kanpur,95,Kanpur-Lucknow Expressway
+Lucknow,Gorakhpur,270,NH-27
+Lucknow,Varanasi,290,NH-731
+Lucknow,Prayagraj,210,Ganga Expressway
+Gorakhpur,Varanasi,200,NH-28
+Gorakhpur,Muzaffarpur,245,NH-27
+Kanpur,Prayagraj,205,NH-19
+Kanpur,Jhansi,230,NH-27
+Gwalior,Jhansi,105,NH-44
+Gwalior,Kota,345,NH-27
+Gwalior,Bhopal,440,NH-44
+Jhansi,Sagar,200,NH-44
+Sagar,Bhopal,170,NH-146
+Sagar,Jabalpur,155,SH-21
+Prayagraj,Varanasi,120,NH-19
+Prayagraj,Jabalpur,365,NH-30
+Jaipur,Kota,280,Delhi - Vadodara Expressway
+Jaipur,Ajmer,130,Jaipur Kishangarh Expressway
+Jaipur,Bikaner,335,NH-52 / NH-11
+Ajmer,Jodhpur,200,NH-25
+Ajmer,Udaipur,265,NH-58
+Jodhpur,Bikaner,235,Amritsar–Jamnagar Expressway
+Jodhpur,Udaipur,250,NH-162
+Jodhpur,Ahmedabad,445,NH-62
+Udaipur,Ahmedabad,255,NH-48
+Udaipur,Kota,275,NH-27
+Kota,Indore,305,NH-752D
+Ahmedabad,Vadodara,115,NH-48
+Ahmedabad,Rajkot,215,NH-47
+Vadodara,Surat,150,Mumbai - Vadodara Expressway
+Vadodara,Indore,355,NH-47
+Surat,Mumbai,275,NH-48
+Surat,Nashik,225,NH-848
+Indore,Bhopal,190,SH-28
+Indore,Nashik,415,NH-52 / NH-60
+Bhopal,Nagpur,350,NH-47 / NH-46
+Bhopal,Jabalpur,315,NH-45
+Jabalpur,Nagpur,275,NH-44
+Jabalpur,Bilaspur,315,NH-30 / NH-130A
+Nashik,Mumbai,165,NH-160
+Nashik,Pune,215,NH-60
+Nashik,Aurangabad,180,Samruddhi Mahamarg
+Mumbai,Pune,145,NH-48
+Aurangabad,Pune,235,NH-753F
+Aurangabad,Amravati,315,Samruddhi Mahamarg
+Aurangabad,Solapur,310,NH-52
+Amravati,Nagpur,155,NH-53
+Nagpur,Raipur,285,NH-53
+Nagpur,Hyderabad,495,NH-44
+Raipur,Bilaspur,115,NH-130 / NH-30
+Raipur,Sambalpur,275,NH-53
+Raipur,Visakhapatnam,585,NH-26 / NH-130C
+Pune,Solapur,250,NH-65
+Pune,Kolhapur,235,NH-48
+Solapur,Hyderabad,310,NH-65
+Solapur,Gulbarga,140,NH-150
+Gulbarga,Hyderabad,230,NH-65
+Varanasi,Patna,245,NH-319
+Varanasi,Gaya,240,NH-19 / NH-120
+Gaya,Patna,100,NH-22
+Patna,Muzaffarpur,70,NH-22
+Muzaffarpur,Siliguri,425,NH-27
+Gaya,Dhanbad,220,NH-19
+Gaya,Ranchi,225,NH-20
+Dhanbad,Kolkata,275,NH-19
+Dhanbad,Ranchi,155,NH-320
+Ranchi,Jamshedpur,130,NH-43
+Ranchi,Sambalpur,330,NH-143D / SH-10
+Jamshedpur,Kolkata,285,NH-16 / NH-18
+Jamshedpur,Bhubaneswar,355,NH-220
+Kolkata,Bhubaneswar,440,NH-16
+Kolkata,Siliguri,580,NH-12
+Siliguri,Guwahati,425,NH-27
+Guwahati,Shillong,95,NH-6
+Shillong,Agartala,480,NH-6
+Guwahati,Imphal,470,NH-27
+Bhubaneswar,Berhampur,170,NH-16
+Bhubaneswar,Sambalpur,280,NH-55
+Berhampur,Visakhapatnam,275,NH-16
+Visakhapatnam,Rajahmundry,190,NH-16
+Rajahmundry,Vijayawada,160,NH-16
+Vijayawada,Hyderabad,275,NH-65
+Vijayawada,Warangal,250,NH-563 / NH-65
+Vijayawada,Nellore,280,NH-16
+Hyderabad,Warangal,150,NH-163
+Hyderabad,Kurnool,215,NH-44
+Kurnool,Bangalore,355,NH-44
+Nellore,Chennai,175,NH-16
+Tirupati,Nellore,135,NH-71 / NH-16
+Chennai,Tirupati,135,NH-716A
+Tirupati,Bangalore,245,NH-71 / SH-82
+Vellore,Tirupati,110,NH-140
+Chennai,Vellore,140,NH-48
+Vellore,Bangalore,190,NH-75 / NE-7
+Chennai,Puducherry,165,NH-32
+Puducherry,Trichy,205,NH-38
+Chennai,Trichy,330,NH-38
+Trichy,Madurai,135,NH-38 / NH-785
+Trichy,Salem,140,SH-25
+Trichy,Coimbatore,250,NH-544
+Salem,Bangalore,185,NH-44 / NH-844
+Salem,Coimbatore,175,NH-544
+Madurai,Coimbatore,210,Oddanchatram - Dharapuram - Tiruppur Road
+Madurai,Tirunelveli,160,NH-44
+Tirunelveli,Trivandrum,155,NH-44 / NH-66
+Trivandrum,Kochi,205,SH-1
+Kochi,Thrissur,85,NH-544
+Thrissur,Coimbatore,120,NH-544
+Thrissur,Kozhikode,130,Calicut-Valanchery-Kuttipuram Highway
+Kozhikode,Mysore,210,NH-766
+Kozhikode,Mangalore,235,NH-66
+Coimbatore,Mysore,195,NH-948
+Mysore,Bangalore,140,Bengaluru-Mysuru Expressway
+Mysore,Mangalore,255,NH-275
+Mangalore,Bangalore,365,NH-75
+Mangalore,Goa,360,NH-66
+Goa,Belgaum,110,NH-748AA
+Goa,Hubli,190,NH-748AA
+Kolhapur,Belgaum,110,NH-48
+Belgaum,Hubli,95,NH-48
+Hubli,Bangalore,410,NH-48

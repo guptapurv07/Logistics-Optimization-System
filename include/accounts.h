@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include "algorithms.h"
 #include "db.h"
 #include "json.hpp"
+#include "network.h"
 
 // --- ACCOUNTS AND LOGIN SESSIONS ---
 
@@ -22,7 +22,7 @@ constexpr int kSessionHours = 12;
 
 // Creates a customer, a driver (who then waits for approval) or a manager together with their warehouse.
 // Returns {"user_id", "role", "can_login", "message"}; throws ApiError for anything the user must change.
-nlohmann::json registerAccount(Database& db, const nlohmann::json& body, const RoadNetwork& network);
+nlohmann::json registerAccount(Database& db, const nlohmann::json& body, const RoadMap& roadMap);
 
 // Checks a username and password; throws ApiError with a message the login page can show
 SessionUser checkLogin(Database& db, const std::string& username, const std::string& password);

@@ -1,11 +1,7 @@
 #include <iostream>
-#include <vector>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <map>
-#include "../include/algorithms.h"
 #include "../include/db.h"
+#include "../include/network.h"
 #include "../include/schema.h"
 #include "../include/seed.h"
 #include "../include/server.h"
@@ -14,34 +10,20 @@ using namespace std;
 
 const string kDatabasePath = "data/logistics.db";
 
-// --- GRAPH LOADER: READ NETWORK_MAP.CSV ---
-RoadNetwork loadNetworkMap() {
-    RoadNetwork adj;
-    ifstream file("data/network_map.csv");
-    string line, u, v, w, type;
-
-    getline(file, line); // Skip header
-    while (getline(file, line)) {
-        stringstream ss(line);
-        getline(ss, u, ',');
-        getline(ss, v, ',');
-        getline(ss, w, ',');
-        getline(ss, type, ',');
-        if(!u.empty() && !v.empty()) {
-            adj[u].push_back({v, stoi(w), type});
-            adj[v].push_back({u, stoi(w), type}); // Bidirectional
-        }
-    }
-    return adj;
-}
-
 int main() {
     cout << "===========================================" << endl;
     cout << "   LOGISTICS ERP BACKEND                   " << endl;
     cout << "===========================================" << endl;
 
-    RoadNetwork network = loadNetworkMap();
-    cout << "[SUCCESS] Network Map Loaded (" << network.size() << " Cities Synced)." << endl;
+    // --- ROAD MAP: cities, roads and road paths from data/ ---
+    RoadMap roadMap;
+    try {
+        roadMap = loadRoadMap("data");
+    } catch (const exception& e) {
+        cerr << "[FATAL] Road map: " << e.what() << endl;
+        return 1;
+    }
+    cout << "[SUCCESS] Road map loaded: " << roadMap.network.size() << " cities, " << roadMap.roadCount() << " roads." << endl;
 
     // --- DATABASE: the tables and the demo company are created on the first run ---
     // This connection only prepares the file; each server thread opens its own one later
@@ -51,7 +33,7 @@ int main() {
         DatabaseCounts counts = countRecords(db);
         if (counts.warehouses == 0) {
             cout << "[DB] New database: creating the demo company (takes a few seconds)..." << endl;
-            counts = seedDemoData(db, network);
+            counts = seedDemoData(db, roadMap.network);
         }
         cout << "[SUCCESS] Database ready: " << counts.warehouses << " warehouses, " << counts.trucks << " trucks, "
              << counts.drivers << " drivers (+" << counts.pendingDrivers << " awaiting approval), "
@@ -64,9 +46,10 @@ int main() {
 
     httplib::Server svr;
 
-    // Serve all UI files in the 'web' folder; role pages are guarded in registerRoutes
-    svr.set_mount_point("/", "./web");
-    registerRoutes(svr, network, kDatabasePath);
+    // Serve all UI files in the 'web' folder; role pages are guarded in registerRoutes.
+    // "no-cache" makes browsers check for a newer file each time, so an updated page or script shows at once.
+    svr.set_mount_point("/", "./web", {{"Cache-Control", "no-cache"}});
+    registerRoutes(svr, roadMap, kDatabasePath);
 
     cout << "Server successfully initialized!" << endl;
     cout << "-> Open your browser and navigate to http://localhost:8080/login.html" << endl;
