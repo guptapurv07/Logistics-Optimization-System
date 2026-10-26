@@ -20,6 +20,9 @@ const App = (() => {
         <symbol id="i-fullscreen" viewBox="0 0 24 24"><path d="M4 10V4h6M14 4h6v6M20 14v6h-6M10 20H4v-6" stroke-linecap="square" stroke-linejoin="miter"/></symbol>
         <symbol id="i-fullscreen-exit" viewBox="0 0 24 24"><path d="M10 3v7H3M14 3v7h7M21 14h-7v7M3 14h7v7" stroke-linecap="square" stroke-linejoin="miter"/></symbol>
         <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+        <symbol id="i-warehouse" viewBox="0 0 24 24"><path d="M3 21V9.5L12 4l9 5.5V21"/><path d="M7 21v-8h10v8"/><path d="M7 16h10M7 18.5h10"/></symbol>
+        <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+        <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
     </svg>`;
 
     function icon(name, extraClass = '') {

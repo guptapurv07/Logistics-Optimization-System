@@ -31,6 +31,9 @@ const std::map<std::string, std::string> kPageRoles = {
     {"/index.html", "manager"}, {"/driver.html", "driver"}, {"/customer.html", "customer"}};
 const std::map<std::string, std::string> kHomePages = {
     {"manager", "/index.html"}, {"driver", "/driver.html"}, {"customer", "/customer.html"}};
+// How the login page names each kind of account ("Continue as truck driver")
+const std::map<std::string, std::string> kRoleNames = {
+    {"manager", "warehouse manager"}, {"driver", "truck driver"}, {"customer", "customer"}};
 
 std::string cookieValue(const Request& req, const std::string& name) {
     std::string header = req.get_header_value("Cookie");
@@ -234,9 +237,17 @@ void registerRoutes(httplib::Server& server, const RoadMap& roadMap, const std::
     server.Post("/api/login", api([](const Request& req, Response& res) {
         Database& db = threadDatabase();
         json body = parseBody(req);
-        std::string username = Fields(body).text("username", "Username", 1, 60);
+        Fields fields(body);
+        std::string username = fields.text("username", "Username", 1, 60);
         if (!body.contains("password") || !body.at("password").is_string()) throw ApiError(400, "Password is required");
+        // The login page first asks which kind of account this is; another kind is refused before any session starts
+        std::string role = fields.optionalText("role", "Account type", 20);
+        if (!role.empty() && !kRoleNames.count(role)) throw ApiError(400, "Account type must be customer, driver or manager");
         SessionUser user = checkLogin(db, username, body.at("password").get<std::string>());
+        if (!role.empty() && role != user.role) {
+            const std::string& name = kRoleNames.at(user.role);
+            throw ApiError(403, "This is a " + name + " account. Go back and choose \"Continue as " + name + "\".");
+        }
         setSessionCookie(res, createSession(db, user.id), kSessionHours * 3600);
         sendJson(res, {{"user", userJson(user)}, {"home", kHomePages.at(user.role)}});
     }));

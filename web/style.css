@@ -1,6 +1,6 @@
 /* =========================================================================
    TruckSetu design system
-   Black and white with one blue accent, Inter Tight, rounded boxes, 200 ms motion.
+   Black and white with one blue accent, Inter Tight, rounded controls on square panels, 200 ms motion.
    Every colour is a token: the light set on :root, the dark set on [data-theme="dark"]
    (switched by the toggle button and remembered per browser).
    ========================================================================= */
@@ -62,7 +62,7 @@
     --art-shadow: rgba(0, 0, 0, 0.16);
 
     --radius: 10px;           /* buttons, inputs, chips, menu items */
-    --radius-card: 12px;      /* cards and panels */
+    --radius-card: 0;         /* cards, panels and other big boxes have square corners */
     --speed: 200ms;
     --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.08);
     color-scheme: light;

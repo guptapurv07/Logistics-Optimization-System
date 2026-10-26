@@ -56,13 +56,28 @@
             transition: background-color var(--speed) ease-out, color var(--speed) ease-out; }
         .tab:hover { color: var(--text); }
         .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
-        .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-        .role-option { display: flex; flex-direction: column; justify-content: flex-start; text-align: left; border: 0; background: var(--box); color: var(--text); border-radius: var(--radius); padding: 11px 12px; cursor: pointer;
-            transition: background-color var(--speed) ease-out, color var(--speed) ease-out; }
-        .role-option:hover { background: var(--box-hover); }
-        .role-option.active { background: var(--ink); color: var(--on-ink); }
-        .role-option strong { display: block; font-weight: 600; }
-        .role-option span { display: block; font-size: 0.78rem; opacity: 0.8; line-height: 1.35; margin-top: 2px; }
+        /* First step: one full-width bar per kind of account, square like the app's panels */
+        .role-list { display: grid; gap: 10px; margin-top: 24px; }
+        .role-bar { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 18px; text-align: left; cursor: pointer;
+            border: 1px solid var(--line-strong); border-radius: var(--radius-card); background: var(--surface); color: var(--text);
+            transition: background-color var(--speed) ease-out; }
+        .role-bar:hover { background: var(--box); }
+        .role-icon { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: var(--radius); background: var(--box);
+            transition: background-color var(--speed) ease-out; }
+        .role-bar:hover .role-icon { background: var(--surface); }
+        .role-icon .icon { width: 20px; height: 20px; }
+        .role-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+        .role-text strong { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+        .role-text span { color: var(--muted); font-size: 0.86rem; line-height: 1.35; }
+        .role-bar .chevron { color: var(--muted); transition: transform var(--speed) ease-out, color var(--speed) ease-out; }
+        .role-bar:hover .chevron { color: var(--text); transform: translateX(3px); }
+        /* Second step */
+        .back-link { display: inline-flex; align-items: center; gap: 4px; margin: 0 0 14px -4px; padding: 4px; border: 0; border-radius: 6px; background: none;
+            color: var(--muted); font-weight: 600; font-size: 0.86rem; cursor: pointer; transition: color var(--speed) ease-out; }
+        .back-link:hover { color: var(--text); }
+        .back-link .icon { width: 16px; height: 16px; }
+        #form-title:focus { outline: none; }   /* focused only so screen readers announce the new step */
+        #register-form > .group-title:first-child { margin-top: 0; }
         fieldset { border: 0; min-width: 0; }
         fieldset[disabled] { display: none; }
         .group-title { margin: 22px 0 10px; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
@@ -82,7 +97,6 @@
             .art-text { display: none; }
             .auth-panel { min-height: 0; padding: 16px 16px 28px; }
         }
-        @media (max-width: 560px) { .roles { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -150,101 +164,122 @@
             <div class="auth-top"><button type="button" class="btn btn-secondary btn-small" data-theme-toggle></button></div>
             <div class="auth-form">
                 <div id="session-banner" class="notice" hidden></div>
-                <h2 id="form-title">Welcome back</h2>
-                <p class="lead" id="form-lead">Log in to your warehouse, truck or customer account.</p>
-
-                <div class="tabs" role="tablist">
-                    <button type="button" class="tab active" data-tab="login-form">Log in</button>
-                    <button type="button" class="tab" data-tab="register-form">Create account</button>
+                <!-- First step: which kind of account -->
+                <div id="choose-step">
+                    <h2>Welcome to TruckSetu</h2>
+                    <p class="lead">Choose how you want to continue.</p>
+                    <div class="role-list">
+                        <button type="button" class="role-bar" data-choose="customer">
+                            <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg></span>
+                            <span class="role-text"><strong>Continue as customer</strong><span>Book shipments and follow them to the door</span></span>
+                            <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                        </button>
+                        <button type="button" class="role-bar" data-choose="driver">
+                            <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg></span>
+                            <span class="role-text"><strong>Continue as truck driver</strong><span>See your trip, its route and the cargo</span></span>
+                            <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                        </button>
+                        <button type="button" class="role-bar" data-choose="manager">
+                            <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-warehouse"/></svg></span>
+                            <span class="role-text"><strong>Continue as warehouse manager</strong><span>Dispatch orders, run the fleet and approve drivers</span></span>
+                            <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <form id="login-form" autocomplete="on">
-                    <div class="form-grid">
-                        <div class="field wide"><label for="login-username">Username</label><input id="login-username" name="username" autocomplete="username" required></div>
-                        <div class="field wide"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
-                    </div>
-                    <div class="form-message" id="login-message" role="alert"></div>
-                    <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Log in</button>
+                <!-- Second step: log in or create an account of that kind -->
+                <div id="role-step" hidden>
+                    <button type="button" class="back-link" id="change-role"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>All account types</button>
+                    <h2 id="form-title" tabindex="-1">Log in</h2>
+                    <p class="lead" id="form-lead"></p>
 
-                    <details class="demo">
-                        <summary>Demo accounts (password Demo@123)</summary>
-                        <div class="demo-group"><span>Warehouse managers</span>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="admin">admin · Noida</button>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="sarah_logistics">sarah_logistics · Mumbai</button>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="mgr.kochi">mgr.kochi</button>
-                        </div>
-                        <div class="demo-group"><span>Truck drivers (Noida)</span>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="raam">raam</button>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="shyam">shyam</button>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="rohit">rohit</button>
-                        </div>
-                        <div class="demo-group"><span>Customers</span>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="sandhu_grain_traders">sandhu_grain_traders · Noida</button>
-                            <button type="button" class="btn btn-secondary btn-small" data-demo="pillai_distributors">pillai_distributors · Kochi</button>
-                        </div>
-                    </details>
-                </form>
-
-                <form id="register-form" hidden>
-                    <div class="roles" id="role-options">
-                        <button type="button" class="role-option active" data-role="customer"><strong>Customer</strong><span>Book shipments and track them</span></button>
-                        <button type="button" class="role-option" data-role="driver"><strong>Truck driver</strong><span>Join a warehouse; its manager approves you</span></button>
-                        <button type="button" class="role-option" data-role="manager"><strong>Warehouse manager</strong><span>Open a new warehouse in a city</span></button>
+                    <div class="tabs" role="tablist">
+                        <button type="button" class="tab active" data-tab="login-form">Log in</button>
+                        <button type="button" class="tab" data-tab="register-form">Create account</button>
                     </div>
 
-                    <div class="group-title">About you</div>
-                    <div class="form-grid">
-                        <div class="field"><label for="r-name">Full name</label><input id="r-name" required maxlength="80"></div>
-                        <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" required maxlength="120"></div>
-                        <div class="field wide"><label for="r-phone">Phone <span class="muted">(optional)</span></label><input id="r-phone" type="tel" maxlength="20" placeholder="98765 43210"></div>
-                    </div>
-
-                    <fieldset data-role="customer">
-                        <div class="group-title">Your company</div>
+                    <form id="login-form" autocomplete="on">
                         <div class="form-grid">
-                            <div class="field"><label for="r-company">Company name</label><input id="r-company" required maxlength="100"></div>
-                            <div class="field"><label for="r-customer-city">City</label><select id="r-customer-city" required></select></div>
-                            <div class="field wide"><label for="r-customer-address">Address</label><input id="r-customer-address" required maxlength="200"></div>
+                            <div class="field wide"><label for="login-username">Username</label><input id="login-username" name="username" autocomplete="username" required></div>
+                            <div class="field wide"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
                         </div>
-                    </fieldset>
+                        <div class="form-message" id="login-message" role="alert"></div>
+                        <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Log in</button>
 
-                    <fieldset data-role="driver" disabled>
-                        <div class="group-title">Warehouse and licence</div>
-                        <div class="form-grid">
-                            <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
-                            <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
-                            <div class="field">
-                                <label for="r-licence-class">Licence class</label>
-                                <select id="r-licence-class" required>
-                                    <option value="LMV">LMV: light trucks up to 7.5 t</option>
-                                    <option value="HMV">HMV: all trucks</option>
-                                </select>
+                        <details class="demo">
+                            <summary>Demo accounts (password Demo@123)</summary>
+                            <div class="demo-group" data-role="manager"><span>Warehouse managers</span>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="admin">admin · Noida</button>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="sarah_logistics">sarah_logistics · Mumbai</button>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="mgr.kochi">mgr.kochi</button>
                             </div>
-                        </div>
-                        <p class="hint" style="margin-top: 10px;">You can log in once the warehouse manager has approved your application.</p>
-                    </fieldset>
+                            <div class="demo-group" data-role="driver"><span>Truck drivers (Noida)</span>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="raam">raam</button>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="shyam">shyam</button>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="rohit">rohit</button>
+                            </div>
+                            <div class="demo-group" data-role="customer"><span>Customers</span>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="sandhu_grain_traders">sandhu_grain_traders · Noida</button>
+                                <button type="button" class="btn btn-secondary btn-small" data-demo="pillai_distributors">pillai_distributors · Kochi</button>
+                            </div>
+                        </details>
+                    </form>
 
-                    <fieldset data-role="manager" disabled>
-                        <div class="group-title">Your warehouse</div>
+                    <form id="register-form" hidden>
+                        <div class="group-title">About you</div>
                         <div class="form-grid">
-                            <div class="field"><label for="r-warehouse-name">Warehouse name</label><input id="r-warehouse-name" required maxlength="60" placeholder="e.g. Goa Coastal Depot"></div>
-                            <div class="field"><label for="r-manager-city">City</label><select id="r-manager-city" required></select></div>
-                            <div class="field wide"><label for="r-manager-address">Warehouse address</label><input id="r-manager-address" required maxlength="200"></div>
+                            <div class="field"><label for="r-name">Full name</label><input id="r-name" required maxlength="80"></div>
+                            <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" required maxlength="120"></div>
+                            <div class="field wide"><label for="r-phone">Phone <span class="muted">(optional)</span></label><input id="r-phone" type="tel" maxlength="20" placeholder="98765 43210"></div>
                         </div>
-                        <p class="hint" style="margin-top: 10px;">Each city has one warehouse for now, so cities that already have one aren't listed. A new warehouse starts with no trucks; add them under Fleet.</p>
-                    </fieldset>
 
-                    <div class="group-title">Login details</div>
-                    <div class="form-grid">
-                        <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
-                        <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"></div>
-                        <div class="field"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
-                        <span class="hint">At least 8 characters, with a letter and a number</span>
-                    </div>
+                        <fieldset data-role="customer">
+                            <div class="group-title">Your company</div>
+                            <div class="form-grid">
+                                <div class="field"><label for="r-company">Company name</label><input id="r-company" required maxlength="100"></div>
+                                <div class="field"><label for="r-customer-city">City</label><select id="r-customer-city" required></select></div>
+                                <div class="field wide"><label for="r-customer-address">Address</label><input id="r-customer-address" required maxlength="200"></div>
+                            </div>
+                        </fieldset>
 
-                    <div class="form-message" id="register-message" role="alert"></div>
-                    <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Create account</button>
-                </form>
+                        <fieldset data-role="driver" disabled>
+                            <div class="group-title">Warehouse and licence</div>
+                            <div class="form-grid">
+                                <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
+                                <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
+                                <div class="field">
+                                    <label for="r-licence-class">Licence class</label>
+                                    <select id="r-licence-class" required>
+                                        <option value="LMV">LMV: light trucks up to 7.5 t</option>
+                                        <option value="HMV">HMV: all trucks</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p class="hint" style="margin-top: 10px;">You can log in once the warehouse manager has approved your application.</p>
+                        </fieldset>
+
+                        <fieldset data-role="manager" disabled>
+                            <div class="group-title">Your warehouse</div>
+                            <div class="form-grid">
+                                <div class="field"><label for="r-warehouse-name">Warehouse name</label><input id="r-warehouse-name" required maxlength="60" placeholder="e.g. Goa Coastal Depot"></div>
+                                <div class="field"><label for="r-manager-city">City</label><select id="r-manager-city" required></select></div>
+                                <div class="field wide"><label for="r-manager-address">Warehouse address</label><input id="r-manager-address" required maxlength="200"></div>
+                            </div>
+                            <p class="hint" style="margin-top: 10px;">Each city has one warehouse for now, so cities that already have one aren't listed. A new warehouse starts with no trucks; add them under Fleet.</p>
+                        </fieldset>
+
+                        <div class="group-title">Login details</div>
+                        <div class="form-grid">
+                            <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
+                            <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"></div>
+                            <div class="field"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
+                            <span class="hint">At least 8 characters, with a letter and a number</span>
+                        </div>
+
+                        <div class="form-message" id="register-message" role="alert"></div>
+                        <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Create account</button>
+                    </form>
+                </div>
             </div>
             <p class="auth-foot">© 2026 TruckSetu</p>
         </section>
@@ -253,7 +288,16 @@
     <script src="app.js"></script>
     <script>
         const $ = id => document.getElementById(id);
-        let role = 'customer';
+        // The title and line under it on each kind of account's forms
+        const ROLES = {
+            customer: { login: 'Log in as a customer', loginLead: 'Book shipments and follow them to the door.',
+                        register: 'Create a customer account', registerLead: 'Start booking shipments in a minute.' },
+            driver: { login: 'Log in as a truck driver', loginLead: 'See your trip, its route and the cargo.',
+                      register: 'Apply as a truck driver', registerLead: 'A warehouse manager approves you before your first trip.' },
+            manager: { login: 'Log in as a warehouse manager', loginLead: 'Dispatch orders, run the fleet and approve drivers.',
+                       register: 'Open a warehouse', registerLead: 'Create your manager account and a new warehouse in one step.' },
+        };
+        let role = null;   // the kind of account chosen on the first step
 
         function showMessage(box, text, tone) {
             box.textContent = text;
@@ -266,19 +310,37 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === formId));
             $('login-form').hidden = !login;
             $('register-form').hidden = login;
-            $('form-title').textContent = login ? 'Welcome back' : 'Create your account';
-            $('form-lead').textContent = login ? 'Log in to your warehouse, truck or customer account.'
-                                               : 'Choose how you will use TruckSetu.';
+            $('form-title').textContent = login ? ROLES[role].login : ROLES[role].register;
+            $('form-lead').textContent = login ? ROLES[role].loginLead : ROLES[role].registerLead;
         }
         document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => openTab(tab.dataset.tab)));
 
-        // --- Account type: only the chosen type's fields are shown and required ---
-        document.querySelectorAll('.role-option').forEach(option => option.addEventListener('click', () => {
-            role = option.dataset.role;
-            document.querySelectorAll('.role-option').forEach(o => o.classList.toggle('active', o === option));
+        // --- Steps: first the kind of account, then its login and sign-up forms, where only its fields are shown and required.
+        // The kind is kept in the address (login.html#driver), so the browser's Back button returns to the first step. ---
+        function showStep(next) {
+            role = ROLES[next] ? next : null;
+            $('choose-step').hidden = !!role;
+            $('role-step').hidden = !role;
+            if (!role) return;
+            document.querySelectorAll('.demo-group').forEach(group => { group.hidden = group.dataset.role !== role; });
             document.querySelectorAll('fieldset[data-role]').forEach(f => { f.disabled = f.dataset.role !== role; });
+            $('login-message').className = 'form-message';
             $('register-message').className = 'form-message';
+            openTab('login-form');
+        }
+        document.querySelectorAll('[data-choose]').forEach(bar => bar.addEventListener('click', () => {
+            history.pushState({ role: bar.dataset.choose }, '', '#' + bar.dataset.choose);
+            showStep(bar.dataset.choose);
+            $('form-title').focus();
         }));
+        $('change-role').addEventListener('click', () => {
+            if (history.state && history.state.role) history.back();   // the first step is the page before this one
+            else {
+                history.replaceState(null, '', location.pathname);   // opened straight at login.html#driver
+                showStep(null);
+            }
+        });
+        window.addEventListener('popstate', () => showStep(location.hash.slice(1)));
 
         // --- Demo buttons fill in the login form ---
         document.querySelectorAll('[data-demo]').forEach(button => button.addEventListener('click', () => {
@@ -317,7 +379,7 @@
             const button = $('login-form').querySelector('button[type=submit]');
             button.disabled = true;
             try {
-                const result = await App.api('/api/login', { username: $('login-username').value, password: $('login-password').value });
+                const result = await App.api('/api/login', { username: $('login-username').value, password: $('login-password').value, role });
                 location.href = result.home;
             } catch (error) {
                 showMessage($('login-message'), error.message, 'error');
@@ -360,7 +422,8 @@
             }
         });
 
-        loadLists().catch(error => showMessage($('register-message'), error.message, 'error'));
+        showStep(location.hash.slice(1));
+        loadLists().catch(error => App.notify(error.message, 'error'));   // a toast, seen on either step
         checkSession();
     </script>
 </body>
