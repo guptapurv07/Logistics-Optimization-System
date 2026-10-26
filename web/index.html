@@ -419,7 +419,8 @@
                     await load();
                 },
                 'cancel-order': async () => {
-                    if (!confirm(`Cancel order #${id}? The customer will see it as cancelled.`)) return;
+                    if (!await App.confirm({ title: `Cancel order #${id}?`, message: `The customer will see it as cancelled. This can't be undone.`,
+                                             action: 'Cancel order', cancel: 'Keep order', danger: true })) return;
                     await App.api('/api/manager/orders/cancel', { order_id: id });
                     App.notify(`Order #${id} cancelled`);
                     await load();
@@ -430,7 +431,9 @@
                     await load();
                 },
                 decline: async () => {
-                    if (!confirm('Decline this application?')) return;
+                    const driver = data.drivers.find(d => d.id === id);
+                    if (!await App.confirm({ title: `Decline ${driver ? driver.name : 'this driver'}?`, message: `They won't be able to log in. This can't be undone.`,
+                                             action: 'Decline', danger: true })) return;
                     await App.api('/api/manager/drivers/decide', { driver_id: id, approve: false });
                     App.notify('Application declined', 'info');
                     await load();

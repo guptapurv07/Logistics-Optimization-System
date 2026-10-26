@@ -190,10 +190,13 @@
 
             $('trip-action').addEventListener('click', event => App.busy(event.currentTarget, async () => {
                 if (!delivered) {
-                    if (!confirm(`Confirm that the goods were handed over in ${destination}?`)) return;
+                    if (!await App.confirm({ title: `Goods handed over in ${destination}?`, cancel: 'Not yet', action: 'Confirm delivery',
+                                             message: 'Confirm only once the receiver has the goods. The customer and the warehouse will see the order as delivered.' })) return;
                     await App.api('/api/driver/trips/delivered', { trip_id: trip.id });
                     App.notify('Delivery confirmed. Drive safely back to the warehouse.');
                 } else {
+                    if (!await App.confirm({ title: `Back at the warehouse in ${warehouse.city}?`, cancel: 'Not yet', action: `Yes, I'm back`,
+                                             message: 'The truck and you will be free for the next trip.' })) return;
                     await App.api('/api/driver/trips/returned', { trip_id: trip.id });
                     App.notify('Welcome back! The truck is free for the next trip.');
                 }

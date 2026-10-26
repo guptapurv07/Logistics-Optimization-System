@@ -21,7 +21,7 @@
     --blue-soft: #E8F0FA;
     --ok: #2F6B4C;     --ok-soft: #E6F2EA;
     --warn: #8A5A1E;   --warn-soft: #F7EDDD;
-    --danger: #B42318; --danger-soft: #FDECEA;
+    --danger: #B42318; --danger-soft: #FDECEA; --on-danger: #FFFFFF;
     --neutral: #555555; --neutral-soft: #EFEFEF;
 
     /* Network map */
@@ -83,7 +83,7 @@
     --blue-soft: #1B2A3D;
     --ok: #86D3AA;     --ok-soft: #16301F;
     --warn: #F0C27E;   --warn-soft: #36280F;
-    --danger: #F4A49B; --danger-soft: #3A1714;
+    --danger: #F4A49B; --danger-soft: #3A1714; --on-danger: #121212;
     --neutral: #BDBDBD; --neutral-soft: #2A2A2A;
 
     --map-road: #5C5C5C;
@@ -277,6 +277,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn-outline:hover { border-color: var(--text); }
 .btn-small { padding: 6px 11px; font-size: 0.82rem; }
 .btn-danger { color: var(--danger); }
+.btn-danger-solid { background: var(--danger); color: var(--on-danger); }   /* the action button of a risky question */
+.btn-danger-solid:hover { background: color-mix(in srgb, var(--danger) 86%, var(--page)); }
 .btn-icon { padding: 8px; }
 .btn-block { width: 100%; }
 button:disabled { opacity: 0.55; cursor: wait; transform: none; }
@@ -365,6 +367,26 @@ td strong { font-weight: 600; }
     background: var(--ok-soft); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 25%, transparent); }
 .toast-error { background: var(--danger-soft); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
 .toast-info { background: var(--blue-soft); color: var(--blue); border-color: color-mix(in srgb, var(--blue) 25%, transparent); }
+
+/* --- Question box (App.confirm), used instead of the browser's own confirm() --- */
+.dialog {
+    width: min(440px, calc(100vw - 32px));
+    margin: auto;   /* the reset above sets margin 0, which would pin the box to the top */
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+}
+.dialog[open] { animation: dialog-in var(--speed) ease-out; }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.dialog::backdrop { background: rgba(0, 0, 0, 0.4); }   /* literal colours: older browsers don't pass tokens to ::backdrop */
+:root[data-theme="dark"] .dialog { border-color: var(--line-strong); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6); }
+:root[data-theme="dark"] .dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.dialog-box { padding: 22px 22px 18px; }
+.dialog-message { color: var(--muted); margin-top: 6px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+@media (max-width: 480px) { .dialog-actions .btn { flex: 1; } }
 
 /* --- Respect "reduce motion" --- */
 @media (prefers-reduced-motion: reduce) {

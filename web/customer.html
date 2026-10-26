@@ -138,8 +138,9 @@
             const button = event.target.closest('[data-cancel]');
             if (!button) return;
             const id = Number(button.dataset.cancel);
-            if (!confirm(`Cancel order #${id}?`)) return;
             App.busy(button, async () => {
+                if (!await App.confirm({ title: `Cancel order #${id}?`, message: `The warehouse won't send a truck for it. This can't be undone.`,
+                                         action: 'Cancel order', cancel: 'Keep order', danger: true })) return;
                 await App.api('/api/customer/orders/cancel', { order_id: id });
                 App.notify(`Order #${id} cancelled`);
                 await load();

@@ -157,6 +157,41 @@ const App = (() => {
         }
     }
 
+    // Asks a yes/no question in a TruckSetu box instead of the browser's confirm(), which says "localhost:8080 says".
+    // Resolves to true for the action button; the other button, Esc or a click on the dimmed page resolve to false.
+    function confirm({ title, message = '', action = 'OK', cancel = 'Cancel', danger = false }) {
+        const dialog = document.createElement('dialog');
+        dialog.className = 'dialog';
+        dialog.setAttribute('aria-labelledby', 'dialog-title');
+        if (message) dialog.setAttribute('aria-describedby', 'dialog-message');
+        dialog.innerHTML = `<div class="dialog-box">
+                <h2 id="dialog-title">${escape(title)}</h2>
+                ${message ? `<p class="dialog-message" id="dialog-message">${escape(message)}</p>` : ''}
+                <div class="dialog-actions">
+                    <button type="button" class="btn btn-secondary" data-answer="no">${escape(cancel)}</button>
+                    <button type="button" class="btn ${danger ? 'btn-danger-solid' : 'btn-primary'}" data-answer="yes">${escape(action)}</button>
+                </div>
+            </div>`;
+        const opener = document.activeElement;
+        let pressedOutside = false;   // so dragging from inside the box out to the page doesn't count as a click outside
+        dialog.addEventListener('pointerdown', event => { pressedOutside = event.target === dialog; });
+        dialog.addEventListener('click', event => {
+            const button = event.target.closest('[data-answer]');
+            if (button) dialog.close(button.dataset.answer);
+            else if (pressedOutside && event.target === dialog) dialog.close('no');   // the box fills the dialog, so this is the page around it
+        });
+        document.body.appendChild(dialog);
+        dialog.showModal();
+        // A risky action starts on the safe button, so pressing Enter by habit doesn't cancel or decline anything
+        dialog.querySelector(`[data-answer="${danger ? 'no' : 'yes'}"]`).focus();
+        // Esc closes the box too, with an empty returnValue, which counts as no
+        return new Promise(resolve => dialog.addEventListener('close', () => {
+            dialog.remove();
+            if (opener && opener.isConnected) opener.focus();
+            resolve(dialog.returnValue === 'yes');
+        }));
+    }
+
     // --- Light / dark mode ---
     // Light is the default. Each page's <head> applies a saved choice before drawing, so there is no flash.
     const THEME_KEY = 'trucksetu-theme';
@@ -196,5 +231,5 @@ const App = (() => {
         button.addEventListener('click', () => setTheme(theme() === 'dark' ? 'light' : 'dark')));
     updateThemeToggles();
 
-    return { icon, escape, api, parseTime, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy, theme, setTheme, token };
+    return { icon, escape, api, parseTime, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy, confirm, theme, setTheme, token };
 })();
