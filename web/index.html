@@ -64,6 +64,7 @@
         .trip-item:last-child { border-bottom: 0; padding-bottom: 0; }
         .trip-item:first-child { padding-top: 0; }
         .trip-item .btn { justify-self: start; }
+        .route strong { color: var(--text); font-weight: 600; }   /* drop-off cities on a route */
         .truck-form { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; max-width: 980px; }   /* one row: model, plate, button */
         @media (max-width: 1200px) {
             .map-layout { grid-template-columns: minmax(0, 1fr); }
@@ -111,7 +112,7 @@
 
                 <div class="panel">
                     <div class="panel-head">
-                        <div><h2>Dispatch</h2><p>Oldest order first: the cheapest free truck that may carry the goods and has room for their weight and volume, plus a driver licensed for it. One order per truck for now.</p></div>
+                        <div><h2>Dispatch</h2><p>Oldest order first. Free trucks that may carry it are filled with more waiting orders on the same road (goods that may travel together, while there is room), going further only when that is cheaper than a truck of their own. The truck that saves the most goes, with a driver licensed for it.</p></div>
                         <button class="btn btn-primary" id="dispatch-button" data-action="dispatch"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg>Dispatch waiting orders</button>
                     </div>
                     <div id="dispatch-result"></div>
@@ -121,7 +122,7 @@
                     <div class="panel-head"><h2>Trips on the road</h2></div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Trip</th><th>Truck</th><th>Driver</th><th>Route</th><th>Distance</th><th>Trip cost</th><th>Status</th><th>Left</th></tr></thead>
+                            <thead><tr><th>Trip</th><th>Truck</th><th>Driver</th><th>Route and drop-offs</th><th>Distance</th><th>Price</th><th>Costs</th><th>Profit</th><th>Status</th><th>Left</th></tr></thead>
                             <tbody id="trips-body"></tbody>
                         </table>
                     </div>
@@ -144,7 +145,7 @@
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Order</th><th>Customer</th><th>Goods</th><th>Weight / volume</th><th>To</th><th>Status</th><th>Truck · driver</th><th>Placed</th><th></th></tr></thead>
+                            <thead><tr><th>Order</th><th>Customer</th><th>Goods</th><th>Weight / volume</th><th>To</th><th>Price</th><th>Status</th><th>Truck · driver</th><th>Placed</th><th></th></tr></thead>
                             <tbody id="orders-body"></tbody>
                         </table>
                     </div>
@@ -240,16 +241,18 @@
                 <div class="stats">
                     <div class="stat"><div class="stat-label">Trips finished</div><div class="stat-value" id="ledger-trips">–</div></div>
                     <div class="stat"><div class="stat-label">Km driven</div><div class="stat-value" id="ledger-km">–</div><div class="stat-hint">there and back</div></div>
-                    <div class="stat"><div class="stat-label">Total trip cost</div><div class="stat-value" id="ledger-cost">–</div><div class="stat-hint">truck cost per km × km driven</div></div>
+                    <div class="stat"><div class="stat-label">Paid by customers</div><div class="stat-value" id="ledger-revenue">–</div><div class="stat-hint">before GST</div></div>
+                    <div class="stat"><div class="stat-label">Costs</div><div class="stat-value" id="ledger-costs">–</div><div class="stat-hint" id="ledger-costs-split">trucks and drivers</div></div>
+                    <div class="stat"><div class="stat-label">Profit</div><div class="stat-value" id="ledger-profit">–</div><div class="stat-hint">paid by customers − costs</div></div>
                 </div>
                 <div class="panel">
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Trip</th><th>Truck</th><th>Driver</th><th>Route</th><th>Km (both ways)</th><th>Cost</th><th>Left</th><th>Delivered</th><th>Back</th><th>Took</th></tr></thead>
+                            <thead><tr><th>Trip</th><th>Truck</th><th>Driver</th><th>Route and drop-offs</th><th>Km (both ways)</th><th>Price</th><th>Costs</th><th>Profit</th><th>Left</th><th>Last drop-off</th><th>Back</th><th>Took</th></tr></thead>
                             <tbody id="ledger-body"></tbody>
                         </table>
                     </div>
-                    <p class="notice">Customer prices aren't set yet, so the ledger shows what each trip cost. Revenue and profit come with the pricing step.</p>
+                    <p class="notice" id="pricing-note"></p>
                 </div>
             </section>
         </main>
@@ -263,6 +266,20 @@
 
         const emptyRow = (columns, text) => `<tr><td colspan="${columns}" class="empty">${E(text)}</td></tr>`;
         const path = route => (route && route.path ? route.path : []).map(E).join(' → ');
+        const money = App.formatMoney;
+        // A trip's route with its drop-off cities in bold, and a line saying how many there are
+        const routeWithStops = trip => {
+            const stops = new Set((trip.stops || []).map(s => s.city));
+            return (trip.route.path || []).map(city => stops.has(city) ? `<strong>${E(city)}</strong>` : E(city)).join(' → ');
+        };
+        const dropSummary = trip => {
+            const stops = trip.stops || [], done = stops.filter(s => s.delivered_at).length;
+            const text = `${trip.order_count} order${trip.order_count === 1 ? '' : 's'} · ${stops.length} drop-off${stops.length === 1 ? '' : 's'}` +
+                         (done && trip.status !== 'completed' ? ` · ${done} done` : '');
+            return `<span class="sub">${text}</span>`;
+        };
+        const costsCell = t => `<td class="num">${money(t.cost + t.driver_pay)}<span class="sub">truck ${money(t.cost)} · driver ${money(t.driver_pay)}</span></td>`;
+        const profitCell = value => `<td class="num${value < 0 ? ' loss' : ''}">${money(value)}</td>`;
 
         // --- Loading ---
         async function load() {
@@ -303,12 +320,14 @@
                     <td><strong>#${t.id}</strong></td>
                     <td><span class="nowrap">${E(t.truck_plate)}</span><span class="sub">${E(t.truck_model)}</span></td>
                     <td>${E(t.driver_name)}</td>
-                    <td class="route">${path(t.route)}</td>
+                    <td class="route">${routeWithStops(t)}${dropSummary(t)}</td>
                     <td class="num">${App.formatNumber(t.distance_km)} km</td>
-                    <td class="num">${App.formatMoney(t.cost)}</td>
+                    <td class="num">${money(t.revenue)}</td>
+                    ${costsCell(t)}
+                    ${profitCell(t.profit)}
                     <td>${App.badge(t.status)}</td>
                     <td class="small">${App.formatDate(t.dispatched_at)}</td>
-                </tr>`).join('') : emptyRow(8, 'No trucks are on the road. Dispatch waiting orders to start trips.');
+                </tr>`).join('') : emptyRow(10, 'No trucks are on the road. Dispatch waiting orders to start trips.');
         }
 
         function renderOrders() {
@@ -322,11 +341,12 @@
                     <td>${E(App.quantity(o.quantity, o.unit))}<span class="sub">${E(o.goods_name)}</span></td>
                     <td class="num">${App.formatNumber(o.weight_kg)} kg<span class="sub">${App.formatNumber(o.volume_m3, 1)} m³</span></td>
                     <td>${E(o.destination_city)}</td>
+                    <td class="num">${o.price === null ? '—' : money(o.price)}${o.distance_km ? `<span class="sub">${App.formatNumber(o.distance_km)} km</span>` : ''}</td>
                     <td>${App.badge(o.status)}</td>
                     <td class="small">${o.truck_plate ? `<span class="nowrap">${E(o.truck_plate)}</span><span class="sub">${E(o.driver_name)}</span>` : '—'}</td>
                     <td class="small">${App.formatDate(o.created_at)}</td>
                     <td class="actions-cell">${o.status === 'pending' ? `<button class="btn btn-secondary btn-small btn-danger" data-action="cancel-order" data-id="${o.id}">Cancel</button>` : ''}</td>
-                </tr>`).join('') : emptyRow(9, filter ? 'No orders with this status.' : 'No orders yet. Customers place them from their own page.');
+                </tr>`).join('') : emptyRow(10, filter ? 'No orders with this status.' : 'No orders yet. Customers place them from their own page.');
         }
 
         function renderFleet() {
@@ -373,31 +393,44 @@
         }
 
         function renderLedger() {
-            const trips = data.ledger;
-            $('ledger-trips').textContent = trips.length;
-            $('ledger-km').textContent = App.formatNumber(trips.reduce((sum, t) => sum + 2 * t.distance_km, 0));
-            $('ledger-cost').textContent = App.formatMoney(trips.reduce((sum, t) => sum + t.cost, 0));
+            // The totals come from the server and cover every finished trip; the table lists the newest
+            const trips = data.ledger, totals = data.ledger_totals;
+            $('ledger-trips').textContent = App.formatNumber(totals.trips);
+            $('ledger-km').textContent = App.formatNumber(totals.km);
+            $('ledger-revenue').textContent = money(totals.revenue);
+            $('ledger-costs').textContent = money(totals.cost + totals.driver_pay);
+            $('ledger-costs-split').textContent = `trucks ${money(totals.cost)} · drivers ${money(totals.driver_pay)}`;
+            $('ledger-profit').textContent = money(totals.profit);
+            $('ledger-profit').classList.toggle('loss', totals.profit < 0);
+            const pricing = catalog && catalog.pricing;
+            $('pricing-note').textContent = pricing ? `Customers pay ${money(pricing.rate_per_tonne_km)} per tonne-km by road from the warehouse ` +
+                `(bulky goods by their space: 1 m³ counts as ${App.formatNumber(pricing.chargeable_kg_per_m3)} kg), at least ` +
+                `${money(pricing.minimum_order_price)} per order, before GST. Costs are the truck's running cost and the driver's pay, for the km there and back.` : '';
             $('ledger-body').innerHTML = trips.length ? trips.map(t => `
                 <tr>
                     <td><strong>#${t.id}</strong></td>
                     <td class="nowrap">${E(t.truck_plate)}</td>
                     <td>${E(t.driver_name)}</td>
-                    <td class="route">${path(t.route)}</td>
+                    <td class="route">${routeWithStops(t)}${dropSummary(t)}</td>
                     <td class="num">${App.formatNumber(2 * t.distance_km)} km</td>
-                    <td class="num">${App.formatMoney(t.cost)}</td>
+                    <td class="num">${money(t.revenue)}</td>
+                    ${costsCell(t)}
+                    ${profitCell(t.profit)}
                     <td class="small">${App.formatDate(t.dispatched_at)}</td>
                     <td class="small">${App.formatDate(t.delivered_at)}</td>
                     <td class="small">${App.formatDate(t.completed_at)}</td>
                     <td class="small">${App.duration(t.dispatched_at, t.completed_at)}</td>
-                </tr>`).join('') : emptyRow(10, 'No finished trips yet. A trip appears here when its driver reports being back.');
+                </tr>`).join('') : emptyRow(12, 'No finished trips yet. A trip appears here when its driver reports being back.');
         }
 
         function showDispatchResult(result) {
             const parts = [];
-            if (result.assigned.length) {
-                parts.push(`<strong>${result.assigned.length} order${result.assigned.length === 1 ? '' : 's'} dispatched</strong>
-                    <ul class="result-list">${result.assigned.map(a => `<li>Order #${a.order_id} → ${E(a.truck_plate)} with ${E(a.driver_name)}:
-                    ${a.path.map(E).join(' → ')} (${App.formatNumber(a.distance_km)} km, ${App.formatMoney(a.cost)} there and back)</li>`).join('')}</ul>`);
+            if (result.trips.length) {
+                const orders = result.trips.reduce((sum, t) => sum + t.stops.reduce((n, s) => n + s.order_ids.length, 0), 0);
+                parts.push(`<strong>${orders} order${orders === 1 ? '' : 's'} sent on ${result.trips.length} trip${result.trips.length === 1 ? '' : 's'}</strong>
+                    <ul class="result-list">${result.trips.map(t => `<li>Trip #${t.trip_id} · ${E(t.truck_plate)} with ${E(t.driver_name)}:
+                    ${t.path.map(E).join(' → ')} (${App.formatNumber(t.distance_km)} km). Drop-offs: ${t.stops.map(s => `${E(s.city)} (${s.order_ids.map(id => '#' + id).join(', ')})`).join(', ')}.
+                    Price ${money(t.revenue)}, costs ${money(t.cost + t.driver_pay)}, profit <span class="nowrap${t.profit < 0 ? ' loss' : ''}">${money(t.profit)}</span></li>`).join('')}</ul>`);
             }
             if (result.waiting.length) {
                 parts.push(`<strong>${result.waiting.length} still waiting</strong>
@@ -545,37 +578,48 @@
             $('map-trips').innerHTML = data.active_trips.length ? data.active_trips.map(t => `
                 <div class="trip-item">
                     <div><span class="trip-swatch" style="background: ${tripColour(t.id)}"></span><strong>Trip #${t.id}</strong> ${App.badge(t.status)}</div>
-                    <div class="route">${path(t.route)}</div>
-                    <div class="small muted">${E(t.truck_plate)} · ${E(t.driver_name)} · ${App.formatNumber(t.distance_km)} km</div>
+                    <div class="route">${routeWithStops(t)}</div>
+                    <div class="small muted">${E(t.truck_plate)} · ${E(t.driver_name)} · ${App.formatNumber(t.distance_km)} km · ${t.stops.length} drop-off${t.stops.length === 1 ? '' : 's'}</div>
                     <button class="btn btn-secondary btn-small" data-action="map-trip" data-id="${t.id}">${App.icon('pin')}Show on map</button>
                 </div>`).join('') : '<p class="empty">No trips on the road.</p>';
         }
 
-        // Where the truck should be by now: time since it left (or delivered) × the average speed, along its roads
+        // Where the truck should be by now, at the average speed: from the last drop-off done (or the warehouse) on to the
+        // next one, where it waits until the driver confirms the delivery; once all are done, back towards the warehouse
         function truckPosition(trip) {
             const legs = trip.route.legs || [];
             const total = legs.reduce((sum, leg) => sum + leg.km, 0);
             if (!total) return null;
             const kmSince = time => Math.max(0, (Date.now() - App.parseTime(time)) / 3600000 * AVERAGE_SPEED_KMH);
             const returning = trip.status === 'returning';
-            const done = Math.min(total, kmSince(returning ? trip.delivered_at : trip.dispatched_at));
-            let along = returning ? total - done : done;
+            const stops = (trip.stops || []).filter(s => s.km !== null);
+            const next = returning ? null : stops.find(s => !s.delivered_at) || null;
+            const lastDone = [...stops].reverse().find(s => s.delivered_at);
+            let along;
+            if (returning) {
+                along = total - Math.min(total, kmSince(trip.delivered_at));
+            } else {
+                const fromKm = lastDone ? lastDone.km : 0, toKm = next ? next.km : total;
+                along = Math.min(toKm, fromKm + kmSince(lastDone ? lastDone.delivered_at : trip.dispatched_at));
+            }
+            const waiting = returning ? along === 0 : !next || along >= next.km;
+            let left = along;
             for (const leg of legs) {
-                if (along <= leg.km) {
+                if (left <= leg.km) {
                     const road = pathBetween(leg.from, leg.to);
-                    return road.length > 1 ? { latlng: pointAlong(road, leg.km ? along / leg.km : 0), done, total, returning } : null;
+                    return road.length > 1 ? { latlng: pointAlong(road, leg.km ? left / leg.km : 0), along, total, returning, next, waiting } : null;
                 }
-                along -= leg.km;
+                left -= leg.km;
             }
             return null;
         }
 
         function truckText(trip, where) {
-            const left = where.total - where.done;
+            const stop = where.next ? where.next.city : lastCity(trip);
             const progress = where.returning
-                ? (left > 0 ? `Driving back · about ${App.formatNumber(where.done)} km to go home` : 'Should be back by now; waiting for the driver to confirm')
-                : (left > 0 ? `About ${App.formatNumber(where.done)} of ${App.formatNumber(where.total)} km · ${App.formatNumber(left / AVERAGE_SPEED_KMH, 1)} h to ${E(lastCity(trip))}`
-                            : `Should have reached ${E(lastCity(trip))}; waiting for the driver to confirm delivery`);
+                ? (where.waiting ? 'Should be back by now; waiting for the driver to confirm' : `Driving back · about ${App.formatNumber(where.along)} km to go home`)
+                : where.waiting ? `Should be in ${E(stop)} by now; waiting for the driver to confirm the delivery`
+                : `About ${App.formatNumber(where.along)} of ${App.formatNumber(where.total)} km · ${App.formatNumber(((where.next ? where.next.km : where.total) - where.along) / AVERAGE_SPEED_KMH, 1)} h to ${E(stop)}`;
             return `<strong>Trip #${trip.id} · ${E(trip.truck_plate)}</strong><br>${E(trip.driver_name)} · ${progress}`;
         }
 
@@ -585,7 +629,12 @@
             const roadCount = roads.roads.filter(r => r.from === city || r.to === city).length;
             const where = warehouse ? `${E(warehouse.code)} · ${E(warehouse.name)}${city === data.warehouse.city ? ' (yours)' : ''}` : 'No warehouse here';
             return `<div class="card-title">${E(city)}</div><div class="muted">${where} · ${roadCount} roads</div>
-                <div class="card-trips">${through.length ? through.map(t => `<div><span class="trip-swatch" style="background: ${tripColour(t.id)}"></span>Trip #${t.id} · ${E(t.truck_plate)} → ${E(lastCity(t))}</div>`).join('')
+                <div class="card-trips">${through.length ? through.map(t => {
+                    const stop = (t.stops || []).find(s => s.city === city);
+                    const what = stop ? `drops ${stop.orders.length} order${stop.orders.length === 1 ? '' : 's'} here${stop.delivered_at ? ' (delivered)' : ''}`
+                                      : `passes through → ${E(lastCity(t))}`;
+                    return `<div><span class="trip-swatch" style="background: ${tripColour(t.id)}"></span>Trip #${t.id} · ${E(t.truck_plate)} ${what}</div>`;
+                }).join('')
                                                        : '<div class="muted">None of your trips pass through here.</div>'}</div>`;
         }
 
@@ -665,12 +714,12 @@
                 }
             });
 
-            // Cities: your warehouse in ink, delivery cities in their trip's colour, other warehouses mid grey, the rest small and light
+            // Cities: your warehouse in ink, drop-off cities in their trip's colour, other warehouses mid grey, the rest small and light
             cityLabels = [];
             const warehouseCities = new Set((catalog.warehouses || []).map(w => w.city));
             roads.cities.forEach(({ name: city }) => {
                 const home = city === data.warehouse.city;
-                const delivery = trips.find(trip => lastCity(trip) === city && !faded(trip));
+                const delivery = trips.find(trip => !faded(trip) && (trip.stops || []).some(stop => stop.city === city));
                 const warehouse = warehouseCities.has(city);
                 const style = home ? { radius: 7, fillColor: t('--map-origin'), weight: 2 }
                             : delivery ? { radius: 6, fillColor: tripColour(delivery.id), weight: 2 }

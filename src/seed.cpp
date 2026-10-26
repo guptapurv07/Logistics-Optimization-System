@@ -532,9 +532,11 @@ DatabaseCounts seedDemoData(Database& db, const std::map<std::string, std::vecto
     }
     tx.commit();
 
-    // 3. Every customer has one order waiting at their local warehouse, so each manager can dispatch straight away.
+    // 3. Every customer has an order waiting at their local warehouse (most also a second one to a town on the way),
+    //    so each manager can dispatch straight away.
     //    The orders go through placeOrder, the same checks a real customer's order goes through.
     SeedRandom orderRandom(kRandomSeed + 1);  // its own sequence, so the company above stays exactly the same
+    SeedRandom extraRandom(kRandomSeed + 2);  // and one for the second orders, so the first ones stay the same too
     std::vector<std::string> cities;
     for (const auto& [city, roads] : network) cities.push_back(city);
     Transaction orderTx(db);
@@ -556,17 +558,33 @@ DatabaseCounts seedDemoData(Database& db, const std::map<std::string, std::vecto
         SessionUser buyer;
         buyer.id = customerId;
         buyer.role = "customer";
-        for (int attempt = 0; attempt < 4; ++attempt) {
-            try {
-                placeOrder(db, buyer,
-                           {{"warehouse_id", warehouseIds[customer->warehouse]}, {"goods_code", customer->goodsCode},
-                            {"quantity", quantity}, {"destination_city", destination}, {"delivery_address", address},
-                            {"receiver_name", receiver}},
-                           network);
-                break;
-            } catch (const ApiError&) {
-                quantity = std::max(1, quantity / 2);  // too big for this warehouse's trucks: book a smaller load
+        const std::int64_t fromWarehouse = warehouseIds[customer->warehouse];  // a plain copy: see goodsCode above
+        auto order = [&](const std::string& to, int units, const std::string& at, const std::string& person) {
+            for (int attempt = 0; attempt < 4; ++attempt) {
+                try {
+                    placeOrder(db, buyer,
+                               {{"warehouse_id", fromWarehouse}, {"goods_code", goodsCode},
+                                {"quantity", units}, {"destination_city", to}, {"delivery_address", at}, {"receiver_name", person}},
+                               network);
+                    return;
+                } catch (const ApiError&) {
+                    units = std::max(1, units / 2);  // too big for this warehouse's trucks: book a smaller load
+                }
             }
+        };
+        order(destination, quantity, address, receiver);
+
+        // Most customers also send a smaller load to a town on the way, so the first dispatch already shows trucks
+        // that drop goods off in several cities
+        std::vector<std::string> path = runDijkstraRouting(warehouse.city, destination, network).path;
+        if (path.size() > 2) {
+            std::string town = path[std::size_t(extraRandom.between(1, int(path.size()) - 2))];
+            int units = extraRandom.between(size->low, (size->low + size->high) / 2);
+            std::string name = extraRandom.pick(kFirstNames);
+            std::string person = name + " " + extraRandom.pick(kSurnames.at(warehouse.region));
+            std::string houseNumber = std::to_string(extraRandom.between(1, 250));  // one random call per statement
+            std::string at = houseNumber + ", " + extraRandom.pick(kCustomerAreas) + ", " + town;
+            order(town, units, at, person);
         }
     }
     orderTx.commit();

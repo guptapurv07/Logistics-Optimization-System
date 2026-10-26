@@ -2,6 +2,7 @@
 #include <string>
 #include "../include/db.h"
 #include "../include/network.h"
+#include "../include/orders.h"
 #include "../include/schema.h"
 #include "../include/seed.h"
 #include "../include/server.h"
@@ -35,6 +36,8 @@ int main() {
             cout << "[DB] New database: creating the demo company (takes a few seconds)..." << endl;
             counts = seedDemoData(db, roadMap.network);
         }
+        int priced = priceOldRecords(db, roadMap.network);
+        if (priced > 0) cout << "[DB] Priced " << priced << " orders placed before prices existed." << endl;
         cout << "[SUCCESS] Database ready: " << counts.warehouses << " warehouses, " << counts.trucks << " trucks, "
              << counts.drivers << " drivers (+" << counts.pendingDrivers << " awaiting approval), "
              << counts.managers << " managers, " << counts.customers << " customers, "

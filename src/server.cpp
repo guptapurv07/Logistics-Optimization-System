@@ -4,6 +4,7 @@
 #include "../include/dispatch.h"
 #include "../include/manager.h"
 #include "../include/orders.h"
+#include "../include/pricing.h"
 #include <iostream>
 #include <map>
 #include <memory>
@@ -147,7 +148,10 @@ json catalogJson(Database& db, const RoadNetwork& network) {
             bodies.push_back({{"code", query.columnText(0)}, {"name", query.columnText(1)}, {"description", query.columnText(2)}});
         }
     }
-    return {{"cities", cities}, {"warehouses", warehouses}, {"goods", goods}, {"truck_models", models}, {"body_types", bodies}};
+    json pricing = {{"rate_per_tonne_km", kRatePerTonneKm}, {"chargeable_kg_per_m3", kChargeableKgPerM3},
+                    {"minimum_order_price", kMinimumOrderPrice}};
+    return {{"cities", cities}, {"warehouses", warehouses}, {"goods", goods}, {"truck_models", models}, {"body_types", bodies},
+            {"pricing", pricing}};
 }
 
 // For drawing the map: every city with its position, and every pair of neighbouring cities once,
@@ -274,6 +278,12 @@ void registerRoutes(httplib::Server& server, const RoadMap& roadMap, const std::
         sendJson(res, customerDashboard(threadDatabase(), requireRole(req, "customer")));
     }));
 
+    // The weight, road km and price of an order before it is placed
+    server.Post("/api/customer/quote", api([&network](const Request& req, Response& res) {
+        requireRole(req, "customer");
+        sendJson(res, quoteOrder(threadDatabase(), parseBody(req), network));
+    }));
+
     server.Post("/api/customer/orders", api([&network](const Request& req, Response& res) {
         SessionUser customer = requireRole(req, "customer");
         sendJson(res, placeOrder(threadDatabase(), customer, parseBody(req), network), 201);
@@ -324,7 +334,8 @@ void registerRoutes(httplib::Server& server, const RoadMap& roadMap, const std::
     server.Post("/api/driver/trips/delivered", api([](const Request& req, Response& res) {
         SessionUser driver = requireRole(req, "driver");
         json body = parseBody(req);
-        markTripDelivered(threadDatabase(), driver, Fields(body).id("trip_id", "Trip"));
+        Fields fields(body);
+        markStopDelivered(threadDatabase(), driver, fields.id("trip_id", "Trip"), fields.optionalText("city", "City", 60));
         sendJson(res, {{"ok", true}});
     }));
 

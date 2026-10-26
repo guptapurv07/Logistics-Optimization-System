@@ -14,6 +14,7 @@
         .quantity-row input { flex: 1; min-width: 0; }
         .unit { font-weight: 600; min-width: 64px; }
         .preview { font-weight: 600; color: var(--blue); }
+        .quote-error { display: block; color: var(--danger); font-weight: 500; }
         .goods-note { background: var(--box); border-radius: var(--radius); padding: 10px 12px; }
         /* Wide screens: booking form on the left, orders on the right; narrower screens stack them */
         .customer-layout { display: grid; gap: 18px; align-items: start; }
@@ -40,7 +41,7 @@
 
         <div class="customer-layout">
             <section class="panel">
-                <div class="panel-head"><div><h2>Book a shipment</h2><p>Order in your goods' own unit; we work out the weight and space.</p></div></div>
+                <div class="panel-head"><div><h2>Book a shipment</h2><p>Order in your goods' own unit; we work out the weight, the space and the price.</p><p class="hint" id="o-pricing" style="margin-top: 4px;"></p></div></div>
                 <form id="order-form">
                     <div class="form-grid order-grid">
                         <div class="field"><label for="o-warehouse">Ship from warehouse</label><select id="o-warehouse" required></select></div>
@@ -66,7 +67,7 @@
                 <div class="panel-head"><h2 id="orders-title">Your orders</h2></div>
                 <div class="table-wrap">
                     <table>
-                        <thead><tr><th>Order</th><th>Goods</th><th>From</th><th>To</th><th>Status</th><th>Truck · driver</th><th>Placed</th><th>Delivered</th><th></th></tr></thead>
+                        <thead><tr><th>Order</th><th>Goods</th><th>From</th><th>To</th><th>Price</th><th>Status</th><th>Truck · driver</th><th>Placed</th><th>Delivered</th><th></th></tr></thead>
                         <tbody id="orders-body"></tbody>
                     </table>
                 </div>
@@ -93,11 +94,31 @@
             updatePreview();
         }
 
+        // The weight and space show at once; the road km and the price come from the server, which checks the order the
+        // same way as when it is placed (so a too-big order says so before it is sent)
+        let quoteTimer = null, quoteNumber = 0;
         function updatePreview() {
             const goods = selectedGoods(), amount = Number($('o-quantity').value);
-            $('o-preview').innerHTML = goods && amount > 0
-                ? `<span class="preview">= ${App.formatNumber(amount * goods.kg_per_unit)} kg · ${App.formatNumber(amount * goods.m3_per_unit, 1)} m³</span>`
-                : '';
+            clearTimeout(quoteTimer);
+            const number = ++quoteNumber;
+            if (!goods || !(amount > 0)) {
+                $('o-preview').innerHTML = '';
+                return;
+            }
+            const local = `= ${App.formatNumber(amount * goods.kg_per_unit)} kg · ${App.formatNumber(amount * goods.m3_per_unit, 1)} m³`;
+            $('o-preview').innerHTML = `<span class="preview">${local}</span>`;
+            if (!$('o-warehouse').value || !$('o-destination').value) return;
+            quoteTimer = setTimeout(async () => {
+                try {
+                    const quote = await App.api('/api/customer/quote', { warehouse_id: $('o-warehouse').value, goods_code: goods.code,
+                                                                         quantity: $('o-quantity').value, destination_city: $('o-destination').value });
+                    if (number !== quoteNumber) return;   // the form changed while the answer was on its way
+                    $('o-preview').innerHTML = `<span class="preview">${local} · ${App.formatNumber(quote.distance_km)} km by road · ${App.formatMoney(quote.price)}</span>`;
+                } catch (error) {
+                    if (number !== quoteNumber) return;
+                    $('o-preview').innerHTML = `<span class="preview">${local}</span><span class="quote-error">${E(error.message)}</span>`;
+                }
+            }, 250);
         }
 
         // The destination can't be the warehouse's own city
@@ -106,6 +127,7 @@
             const cities = catalog.cities.filter(c => !warehouse || c !== warehouse.city);
             App.fillSelect($('o-destination'), cities, c => c, c => c, 'Choose a city');
             if (cities.includes(current)) $('o-destination').value = current;
+            updatePreview();
         }
 
         async function load() {
@@ -126,12 +148,13 @@
                     <td>${E(App.quantity(o.quantity, o.goods.unit))}<span class="sub">${E(o.goods.name)} · ${App.formatNumber(o.weight_kg)} kg</span></td>
                     <td><span class="nowrap">${E(o.warehouse.code)}</span><span class="sub">${E(o.warehouse.city)}</span></td>
                     <td>${E(o.destination_city)}<span class="sub">${E(o.receiver_name)}</span></td>
+                    <td class="num">${o.price === null ? '—' : App.formatMoney(o.price)}${o.distance_km ? `<span class="sub">${App.formatNumber(o.distance_km)} km</span>` : ''}</td>
                     <td>${App.badge(o.status)}</td>
-                    <td class="small">${o.trip ? `<span class="nowrap">${E(o.trip.truck_plate)}</span><span class="sub">${E(o.trip.driver_name)} · ${App.formatNumber(o.trip.distance_km)} km</span>` : '—'}</td>
+                    <td class="small">${o.trip ? `<span class="nowrap">${E(o.trip.truck_plate)}</span><span class="sub">${E(o.trip.driver_name)}</span>` : '—'}</td>
                     <td class="small">${App.formatDate(o.created_at)}</td>
                     <td class="small">${App.formatDate(o.delivered_at)}</td>
                     <td class="actions-cell">${o.status === 'pending' ? `<button class="btn btn-secondary btn-small btn-danger" data-cancel="${o.id}">Cancel</button>` : ''}</td>
-                </tr>`).join('') : '<tr><td colspan="9" class="empty">No orders yet. Book your first shipment above.</td></tr>';
+                </tr>`).join('') : '<tr><td colspan="10" class="empty">No orders yet. Book your first shipment above.</td></tr>';
         }
 
         $('orders-body').addEventListener('click', event => {
@@ -157,7 +180,7 @@
                     receiver_name: $('o-receiver').value, receiver_phone: $('o-phone').value, notes: $('o-notes').value,
                 });
                 $('order-result').innerHTML = `<p class="notice">Order <strong>#${result.id}</strong> placed:
-                    ${App.formatNumber(result.weight_kg)} kg, ${App.formatNumber(result.volume_m3, 1)} m³.
+                    ${App.formatNumber(result.weight_kg)} kg, ${App.formatNumber(result.volume_m3, 1)} m³, <strong>${App.formatMoney(result.price)}</strong> before GST.
                     Route ${result.path.map(E).join(' → ')} (${App.formatNumber(result.distance_km)} km). It waits for the warehouse to dispatch a truck.</p>`;
                 ['o-quantity', 'o-receiver', 'o-phone', 'o-address', 'o-notes'].forEach(id => { $(id).value = ''; });
                 updatePreview();
@@ -168,6 +191,7 @@
         $('o-goods').addEventListener('change', updateGoods);
         $('o-quantity').addEventListener('input', updatePreview);
         $('o-warehouse').addEventListener('change', updateDestinations);
+        $('o-destination').addEventListener('change', updatePreview);
         $('logout').addEventListener('click', App.logout);
         $('refresh').addEventListener('click', event => App.busy(event.currentTarget, load));
 
@@ -176,6 +200,9 @@
                 catalog = await App.api('/api/catalog');
                 App.fillSelect($('o-warehouse'), catalog.warehouses, w => w.id, w => `${w.code} · ${w.name} (${w.city})`);
                 App.fillSelect($('o-goods'), catalog.goods, g => g.code, g => g.name);
+                const pricing = catalog.pricing;
+                $('o-pricing').textContent = `Price: ${App.formatMoney(pricing.rate_per_tonne_km)} per tonne-km by road from the warehouse · bulky goods by their space ` +
+                    `(1 m³ counts as ${App.formatNumber(pricing.chargeable_kg_per_m3)} kg) · at least ${App.formatMoney(pricing.minimum_order_price)} per order · GST extra`;
                 await load();
                 // Start with the warehouse in the customer's own city, if there is one
                 const local = catalog.warehouses.find(w => data.company && w.city === data.company.city);

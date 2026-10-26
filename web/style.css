@@ -330,6 +330,7 @@ td strong { font-weight: 600; }
 .route { color: var(--muted); font-size: 0.86rem; }
 .empty { padding: 36px 16px; text-align: center; color: var(--muted); }
 .actions-cell { white-space: nowrap; text-align: right; }
+.loss { color: var(--danger); }   /* a negative profit */
 
 /* --- Forms --- */
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 16px; }

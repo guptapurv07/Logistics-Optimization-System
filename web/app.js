@@ -79,8 +79,9 @@ const App = (() => {
         return Number(value).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     }
 
+    // ₹1,234 or −₹1,234 for a loss
     function formatMoney(value) {
-        return '₹' + formatNumber(value, 0);
+        return (value < 0 ? '−₹' : '₹') + formatNumber(Math.abs(value), 0);
     }
 
     // 120 bags, 7.5 tonnes, 1 bale

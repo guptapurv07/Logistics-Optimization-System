@@ -25,6 +25,7 @@ add_executable(LogisticsApp
     src/manager.cpp
     src/server.cpp
     src/network.cpp
+    src/pricing.cpp
 )
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

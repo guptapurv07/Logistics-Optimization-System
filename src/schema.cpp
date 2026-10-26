@@ -130,7 +130,7 @@ CREATE TABLE trips (
     status        TEXT NOT NULL DEFAULT 'in_transit' CHECK (status IN ('in_transit', 'returning', 'completed')),
     route_json    TEXT NOT NULL,                     -- cities and roads, as planned when the trip started
     distance_km   INTEGER NOT NULL CHECK (distance_km > 0),   -- warehouse to delivery, one way
-    cost          REAL NOT NULL CHECK (cost >= 0),            -- truck cost per km x the distance both ways
+    cost          REAL NOT NULL CHECK (cost >= 0),            -- truck running cost per km x the distance both ways
     dispatched_at TEXT NOT NULL DEFAULT (datetime('now')),
     delivered_at  TEXT,
     completed_at  TEXT                               -- back at the warehouse, truck and driver free again
@@ -163,6 +163,14 @@ CREATE INDEX idx_orders_customer   ON orders(customer_id);
 CREATE INDEX idx_orders_trip       ON orders(trip_id);
 )SQL";
 
+// Prices are fixed when an order is placed, so a later change of rate or road never changes what a customer was told.
+// Rows from version 2 get them once at startup (priceOldRecords in orders.cpp), which needs the road map.
+const char* const kSchemaV3 = R"SQL(
+ALTER TABLE orders ADD COLUMN distance_km INTEGER CHECK (distance_km > 0);   -- warehouse to the delivery city by road
+ALTER TABLE orders ADD COLUMN price REAL CHECK (price >= 0);                  -- what the customer pays, rupees before GST
+ALTER TABLE trips ADD COLUMN driver_pay REAL CHECK (driver_pay >= 0);         -- the driver's pay for the km there and back
+)SQL";
+
 int readSchemaVersion(Database& db) {
     Statement version = db.prepare("PRAGMA user_version");
     version.step();
@@ -184,6 +192,7 @@ void createSchema(Database& db) {
     Transaction tx(db);
     if (version < 1) db.exec(kSchemaV1);
     if (version < 2) db.exec(kSchemaV2);
+    if (version < 3) db.exec(kSchemaV3);
     db.exec("PRAGMA user_version = " + std::to_string(kSchemaVersion));
     tx.commit();
 }

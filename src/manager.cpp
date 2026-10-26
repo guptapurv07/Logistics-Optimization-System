@@ -1,5 +1,6 @@
 #include "../include/manager.h"
 #include "../include/api.h"
+#include "../include/dispatch.h"
 #include <cctype>
 #include <regex>
 
@@ -57,7 +58,7 @@ json managerDashboard(Database& db, const SessionUser& manager) {
     {
         Statement query = db.prepare(R"SQL(
             SELECT o.id, o.status, g.name, g.unit, o.quantity, o.weight_kg, o.volume_m3, o.destination_city,
-                   o.created_at, o.delivered_at, c.company_name, o.trip_id, tr.plate_no, u.full_name
+                   o.created_at, o.delivered_at, c.company_name, o.trip_id, tr.plate_no, u.full_name, o.distance_km, o.price
             FROM orders o
             JOIN goods_types g ON g.code = o.goods_code
             JOIN customers c ON c.user_id = o.customer_id
@@ -75,17 +76,37 @@ json managerDashboard(Database& db, const SessionUser& manager) {
                               {"created_at", query.columnText(8)}, {"delivered_at", textOrNull(query, 9)},
                               {"customer", query.columnText(10)},
                               {"trip_id", query.columnIsNull(11) ? json() : json(query.columnInt(11))},
-                              {"truck_plate", textOrNull(query, 12)}, {"driver_name", textOrNull(query, 13)}});
+                              {"truck_plate", textOrNull(query, 12)}, {"driver_name", textOrNull(query, 13)},
+                              {"distance_km", query.columnIsNull(14) ? json() : json(query.columnInt(14))},
+                              {"price", query.columnIsNull(15) ? json() : json(query.columnDouble(15))}});
         }
     }
 
+    // The newest 300 trips, each with its orders grouped into drop-offs and its profit:
+    // what the customers pay - the truck's running cost - the driver's pay
+    std::map<std::int64_t, json> tripOrders;
+    {
+        Statement query = db.prepare(R"SQL(
+            SELECT o.trip_id, o.id, o.destination_city, o.status, o.delivered_at, c.company_name, o.price, o.weight_kg
+            FROM orders o JOIN customers c ON c.user_id = o.customer_id
+            WHERE o.trip_id IN (SELECT id FROM trips WHERE warehouse_id = ?1 ORDER BY id DESC LIMIT 300)
+            ORDER BY o.id)SQL");
+        query.bind(1, warehouseId);
+        while (query.step()) {
+            json& list = tripOrders[query.columnInt(0)];
+            if (list.is_null()) list = json::array();
+            list.push_back({{"id", query.columnInt(1)}, {"destination_city", query.columnText(2)}, {"status", query.columnText(3)},
+                            {"delivered_at", textOrNull(query, 4)}, {"customer", query.columnText(5)},
+                            {"price", query.columnIsNull(6) ? json() : json(query.columnDouble(6))}, {"weight_kg", query.columnDouble(7)}});
+        }
+    }
     json activeTrips = json::array(), ledger = json::array();
     {
         Statement query = db.prepare(R"SQL(
             SELECT t.id, t.status, t.route_json, t.distance_km, t.cost, t.dispatched_at, t.delivered_at, t.completed_at,
-                   tr.plate_no, tm.name, u.full_name,
-                   (SELECT COUNT(*) FROM orders WHERE trip_id = t.id),
-                   (SELECT COALESCE(SUM(weight_kg), 0) FROM orders WHERE trip_id = t.id)
+                   tr.plate_no, tm.name, u.full_name, COALESCE(t.driver_pay, 0),
+                   (SELECT COALESCE(SUM(weight_kg), 0) FROM orders WHERE trip_id = t.id),
+                   (SELECT COALESCE(SUM(price), 0) FROM orders WHERE trip_id = t.id)
             FROM trips t
             JOIN trucks tr ON tr.id = t.truck_id
             JOIN truck_models tm ON tm.id = tr.model_id
@@ -94,16 +115,32 @@ json managerDashboard(Database& db, const SessionUser& manager) {
             ORDER BY t.id DESC LIMIT 300)SQL");
         query.bind(1, warehouseId);
         while (query.step()) {
-            json route = json::parse(query.columnText(2), nullptr, false);
-            if (route.is_discarded()) route = {{"path", json::array()}, {"legs", json::array()}};
-            json trip = {{"id", query.columnInt(0)}, {"status", query.columnText(1)}, {"route", route},
-                         {"distance_km", query.columnInt(3)}, {"cost", query.columnDouble(4)},
-                         {"dispatched_at", query.columnText(5)}, {"delivered_at", textOrNull(query, 6)},
-                         {"completed_at", textOrNull(query, 7)}, {"truck_plate", query.columnText(8)},
-                         {"truck_model", query.columnText(9)}, {"driver_name", query.columnText(10)},
-                         {"order_count", query.columnInt(11)}, {"weight_kg", query.columnDouble(12)}};
+            std::int64_t id = query.columnInt(0);
+            json route = readRoute(query.columnText(2));
+            json orders = tripOrders.count(id) ? tripOrders[id] : json::array();
+            double cost = query.columnDouble(4), driverPay = query.columnDouble(11), revenue = query.columnDouble(13);
+            json trip = {{"id", id}, {"status", query.columnText(1)}, {"route", route},
+                         {"distance_km", query.columnInt(3)}, {"cost", cost}, {"driver_pay", driverPay}, {"revenue", revenue},
+                         {"profit", revenue - cost - driverPay}, {"dispatched_at", query.columnText(5)},
+                         {"delivered_at", textOrNull(query, 6)}, {"completed_at", textOrNull(query, 7)},
+                         {"truck_plate", query.columnText(8)}, {"truck_model", query.columnText(9)}, {"driver_name", query.columnText(10)},
+                         {"order_count", orders.size()}, {"weight_kg", query.columnDouble(12)}, {"stops", tripStops(route, orders)}};
             (trip["status"] == "completed" ? ledger : activeTrips).push_back(trip);
         }
+    }
+
+    // Ledger totals over every finished trip, not only the 300 listed
+    json ledgerTotals;
+    {
+        Statement query = db.prepare(R"SQL(
+            SELECT COUNT(*), COALESCE(SUM(t.distance_km), 0) * 2, COALESCE(SUM(t.cost), 0), COALESCE(SUM(t.driver_pay), 0),
+                   COALESCE(SUM((SELECT COALESCE(SUM(price), 0) FROM orders WHERE trip_id = t.id)), 0)
+            FROM trips t WHERE t.warehouse_id = ?1 AND t.status = 'completed')SQL");
+        query.bind(1, warehouseId);
+        query.step();
+        double cost = query.columnDouble(2), driverPay = query.columnDouble(3), revenue = query.columnDouble(4);
+        ledgerTotals = {{"trips", query.columnInt(0)}, {"km", query.columnInt(1)}, {"revenue", revenue}, {"cost", cost},
+                        {"driver_pay", driverPay}, {"profit", revenue - cost - driverPay}};
     }
 
     json trucks = json::array();
@@ -137,7 +174,7 @@ json managerDashboard(Database& db, const SessionUser& manager) {
     }
 
     return {{"user", userJson(manager)}, {"warehouse", warehouse}, {"counts", counts}, {"orders", orders},
-            {"active_trips", activeTrips}, {"ledger", ledger}, {"trucks", trucks}, {"drivers", drivers}};
+            {"active_trips", activeTrips}, {"ledger", ledger}, {"ledger_totals", ledgerTotals}, {"trucks", trucks}, {"drivers", drivers}};
 }
 
 void decideDriver(Database& db, const SessionUser& manager, std::int64_t driverId, bool approve) {

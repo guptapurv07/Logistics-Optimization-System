@@ -29,7 +29,7 @@
         .panel-title { font-size: 0.76rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
         .trip-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
         .dest { font-size: 2.1rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; }
-        .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 20px 0; }
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 20px 0; }   /* left, each drop-off, back */
         .step { padding: 10px 12px; border-radius: var(--radius); background: var(--box); color: var(--muted); font-size: 0.84rem; font-weight: 500; }
         .step.done { background: var(--ok-soft); color: var(--ok); }
         .step.now { background: var(--ink); color: var(--on-ink); }
@@ -40,10 +40,15 @@
         .legs li span { color: var(--muted); }
         .cargo { background: var(--box); border-radius: var(--radius); padding: 14px; display: grid; gap: 4px; font-size: 0.92rem; }
         .cargo + .cargo { margin-top: 10px; }
+        .stop-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; margin: 14px 0 8px; }
+        .panel-title + .stop-title { margin-top: 0; }
+        .stop-title .muted { font-weight: 500; font-size: 0.84rem; }
+        .cargo.done { opacity: 0.6; }
+        .pay { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; font-variant-numeric: tabular-nums; }
         .handling { color: var(--warn); font-weight: 500; }
         .idle { text-align: center; padding: 48px 20px; }
         .idle .icon { width: 40px; height: 40px; color: var(--muted); margin-bottom: 10px; }
-        @media (max-width: 760px) { .columns { grid-template-columns: minmax(0, 1fr); } .steps { grid-template-columns: minmax(0, 1fr); } .dest { font-size: 1.6rem; } }
+        @media (max-width: 760px) { .columns { grid-template-columns: minmax(0, 1fr); } .dest { font-size: 1.6rem; } }
     </style>
 </head>
 <body>
@@ -63,6 +68,16 @@
 
         <div class="driver-layout">
             <div class="info-grid">
+                <div class="panel">
+                    <div class="panel-title">Your pay</div>
+                    <div class="pay" id="pay-month">…</div>
+                    <div class="muted small" id="pay-month-trips">this month</div>
+                    <div class="rows" style="margin-top: 10px;">
+                        <div class="row"><span>This trip</span><span id="pay-trip">—</span></div>
+                        <div class="row"><span>All time</span><span id="pay-total">…</span></div>
+                        <div class="row"><span>Rate</span><span id="pay-rate">…</span></div>
+                    </div>
+                </div>
                 <div class="panel">
                     <div class="panel-title">Licence</div>
                     <div class="rows">
@@ -94,7 +109,7 @@
                     <div class="panel-head"><h2>Finished trips</h2></div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Trip</th><th>Truck</th><th>Route</th><th>Km (both ways)</th><th>Left</th><th>Back</th><th>Took</th></tr></thead>
+                            <thead><tr><th>Trip</th><th>Truck</th><th>Route</th><th>Km (both ways)</th><th>Your pay</th><th>Left</th><th>Back</th><th>Took</th></tr></thead>
                             <tbody id="history-body"></tbody>
                         </table>
                     </div>
@@ -125,10 +140,18 @@
             $('wh-name').textContent = user.warehouse.name;
             $('wh-city').textContent = user.warehouse.city;
 
+            // Pay is earned when a trip is finished, back at the warehouse
+            const pay = data.earnings;
+            $('pay-month').textContent = App.formatMoney(pay.month);
+            $('pay-month-trips').textContent = `this month · ${pay.month_trips} trip${pay.month_trips === 1 ? '' : 's'} finished`;
+            $('pay-trip').textContent = trip ? `${App.formatMoney(trip.driver_pay)} when you're back` : '—';
+            $('pay-total').textContent = `${App.formatMoney(pay.total)} · ${pay.total_trips} trip${pay.total_trips === 1 ? '' : 's'}`;
+            $('pay-rate').textContent = `₹${App.formatNumber(pay.rate_per_km, 2)} per km, there and back`;
+
             $('dr-status').innerHTML = App.badge(trip ? trip.status : 'available');
             $('dr-status-text').textContent = !trip ? 'Waiting at the warehouse for the next trip.'
-                : trip.status === 'in_transit' ? 'Driving to the delivery. Confirm it once the goods are handed over.'
-                : 'Delivered. Driving back to the warehouse.';
+                : trip.status === 'in_transit' ? 'Driving to the next drop-off. Confirm each one once its goods are handed over.'
+                : 'Everything is delivered. Driving back to the warehouse.';
 
             $('trip-panel').hidden = !trip;
             $('idle-panel').hidden = !!trip;
@@ -137,25 +160,30 @@
         }
 
         function renderTrip(trip, warehouse) {
-            const cities = trip.route.path || [];
-            const destination = cities[cities.length - 1] || '';
+            const stops = trip.stops || [];
+            const delivered = trip.status === 'returning';
+            const next = delivered ? null : stops.find(s => !s.delivered_at);
             const totalKg = trip.orders.reduce((sum, o) => sum + o.weight_kg, 0);
             const totalM3 = trip.orders.reduce((sum, o) => sum + o.volume_m3, 0);
-            const hours = trip.distance_km / AVERAGE_SPEED_KMH;
-            const delivered = trip.status === 'returning';
+            const place = next ? next.city : warehouse.city;
+            const kmToGo = next ? next.km : trip.distance_km;   // to the next drop-off from the warehouse, or the way back
+            const heading = delivered ? 'Everything delivered · heading back to'
+                : stops.length > 1 ? `Next drop-off (${stops.indexOf(next) + 1} of ${stops.length})` : 'Heading to';
+            const distanceText = delivered ? `${App.formatNumber(trip.distance_km)} km back from ${E(stops.length ? stops[stops.length - 1].city : '')}`
+                : `${App.formatNumber(kmToGo)} km from ${E(warehouse.city)}`;
 
             $('trip-panel').innerHTML = `
                 <div class="panel-head"><h2>Trip #${trip.id}</h2>${App.badge(trip.status)}</div>
                 <div class="trip-top">
-                    <div><div class="muted small">${delivered ? 'Delivered in' : 'Heading to'}</div><div class="dest">${E(destination)}</div>
-                        <div class="muted small">${App.formatNumber(trip.distance_km)} km from ${E(warehouse.city)} · about ${App.formatNumber(hours, 1)} h at ${AVERAGE_SPEED_KMH} km/h on average</div></div>
+                    <div><div class="muted small">${heading}</div><div class="dest">${E(place)}</div>
+                        <div class="muted small">${distanceText} · about ${App.formatNumber(kmToGo / AVERAGE_SPEED_KMH, 1)} h at ${AVERAGE_SPEED_KMH} km/h on average</div></div>
                     <div style="text-align: right;"><div class="muted small">Load</div><div class="dest num" style="font-size: 1.5rem;">${App.formatNumber(totalKg)} kg</div>
-                        <div class="muted small">${App.formatNumber(totalM3, 1)} m³ of ${App.formatNumber(trip.truck.volume_m3, 1)} m³</div></div>
+                        <div class="muted small">${App.formatNumber(totalM3, 1)} m³ of ${App.formatNumber(trip.truck.volume_m3, 1)} m³ · ${trip.orders.length} order${trip.orders.length === 1 ? '' : 's'}</div></div>
                 </div>
 
                 <div class="steps">
                     <div class="step done">Left ${E(warehouse.city)} · ${App.formatDate(trip.dispatched_at)}</div>
-                    <div class="step ${delivered ? 'done' : 'now'}">${delivered ? 'Delivered · ' + App.formatDate(trip.delivered_at) : 'Deliver in ' + E(destination)}</div>
+                    ${stops.map(s => `<div class="step ${s.delivered_at ? 'done' : s === next ? 'now' : ''}">${s.delivered_at ? `Delivered in ${E(s.city)} · ${App.formatDate(s.delivered_at)}` : `Deliver in ${E(s.city)}`}</div>`).join('')}
                     <div class="step ${delivered ? 'now' : ''}">Back at ${E(warehouse.city)}</div>
                 </div>
 
@@ -173,32 +201,36 @@
                             `<li>${E(leg.from)} → ${E(leg.to)} <span>· ${E(leg.road)} · ${App.formatNumber(leg.km)} km</span></li>`).join('')}</ul>
                     </div>
                     <div>
-                        <div class="panel-title">Cargo</div>
-                        ${trip.orders.map(o => `
-                            <div class="cargo">
+                        <div class="panel-title">Cargo, by drop-off</div>
+                        ${stops.map((s, i) => `
+                            <div class="stop-title"><span>${i + 1}. ${E(s.city)}</span><span class="muted">${s.delivered_at ? 'Delivered' : s === next ? 'Next' : `${App.formatNumber(s.km)} km`}</span></div>
+                            ${s.orders.map(o => `
+                            <div class="cargo${s.delivered_at ? ' done' : ''}">
                                 <strong>Order #${o.id} · ${E(App.quantity(o.quantity, o.unit))} of ${E(o.goods_name)}</strong>
                                 <span class="muted">${App.formatNumber(o.weight_kg)} kg · ${App.formatNumber(o.volume_m3, 1)} m³ · from ${E(o.customer)}</span>
                                 <span class="handling">${E(o.handling)}</span>
                                 <span>Deliver to ${E(o.receiver_name)}${o.receiver_phone ? ' · ' + E(o.receiver_phone) : ''}</span>
                                 <span class="muted">${E(o.delivery_address)}</span>
                                 ${o.notes ? `<span class="muted">Note: ${E(o.notes)}</span>` : ''}
-                            </div>`).join('')}
+                            </div>`).join('')}`).join('')}
                     </div>
                 </div>
 
-                <div class="form-actions"><button class="btn btn-primary btn-block" id="trip-action">${delivered ? `Back at the warehouse in ${E(warehouse.city)}` : 'Confirm delivery'}</button></div>`;
+                <div class="form-actions"><button class="btn btn-primary btn-block" id="trip-action">${delivered ? `Back at the warehouse in ${E(warehouse.city)}` : `Confirm delivery in ${E(next.city)}`}</button></div>`;
 
             $('trip-action').addEventListener('click', event => App.busy(event.currentTarget, async () => {
                 if (!delivered) {
-                    if (!await App.confirm({ title: `Goods handed over in ${destination}?`, cancel: 'Not yet', action: 'Confirm delivery',
-                                             message: 'Confirm only once the receiver has the goods. The customer and the warehouse will see the order as delivered.' })) return;
-                    await App.api('/api/driver/trips/delivered', { trip_id: trip.id });
-                    App.notify('Delivery confirmed. Drive safely back to the warehouse.');
+                    const count = next.orders.length;
+                    if (!await App.confirm({ title: `Goods handed over in ${next.city}?`, cancel: 'Not yet', action: 'Confirm delivery',
+                                             message: `Confirm only once the receiver${count === 1 ? ' has' : 's have'} the goods (${count} order${count === 1 ? '' : 's'}). The customer and the warehouse will see ${count === 1 ? 'it' : 'them'} as delivered.` })) return;
+                    await App.api('/api/driver/trips/delivered', { trip_id: trip.id, city: next.city });
+                    const last = stops.filter(s => !s.delivered_at).length === 1;
+                    App.notify(last ? 'All delivered. Drive safely back to the warehouse.' : `Delivered in ${next.city}. On to the next drop-off.`);
                 } else {
                     if (!await App.confirm({ title: `Back at the warehouse in ${warehouse.city}?`, cancel: 'Not yet', action: `Yes, I'm back`,
                                              message: 'The truck and you will be free for the next trip.' })) return;
                     await App.api('/api/driver/trips/returned', { trip_id: trip.id });
-                    App.notify('Welcome back! The truck is free for the next trip.');
+                    App.notify(`Welcome back! You earned ${App.formatMoney(trip.driver_pay)} on this trip.`);
                 }
                 await load();
             }));
@@ -211,10 +243,11 @@
                     <td class="nowrap">${E(t.truck_plate)}</td>
                     <td class="route">${(t.path || []).map(E).join(' → ')}</td>
                     <td class="num">${App.formatNumber(2 * t.distance_km)} km</td>
+                    <td class="num">${App.formatMoney(t.driver_pay)}</td>
                     <td class="small">${App.formatDate(t.dispatched_at)}</td>
                     <td class="small">${App.formatDate(t.completed_at)}</td>
                     <td class="small">${App.duration(t.dispatched_at, t.completed_at)}</td>
-                </tr>`).join('') : '<tr><td colspan="7" class="empty">No finished trips yet.</td></tr>';
+                </tr>`).join('') : '<tr><td colspan="8" class="empty">No finished trips yet.</td></tr>';
         }
 
         $('logout').addEventListener('click', App.logout);

@@ -10,7 +10,8 @@
 // --- DEMO DATA ---
 // Fills a new database with the goods and truck catalogues and a realistic company: 20 warehouses with
 // 30-50 trucks each (800 in total), drivers for about 70% of each fleet, a manager per warehouse and
-// demo customers, each with one order waiting at their local warehouse.
+// demo customers, each with an order waiting at their local warehouse; most also send a smaller one to a town
+// on the way, so trucks can drop off in several cities.
 // A fixed random seed makes the data identical on every run and every machine.
 
 // Every demo account (managers, drivers, customers) logs in with this password
