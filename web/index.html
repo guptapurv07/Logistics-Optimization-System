@@ -9,14 +9,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <style>
         .map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
         .map-layout .panel + .panel { margin-top: 0; }  /* side by side here, not stacked */
         .map-panel { padding: 0; overflow: hidden; }
         .map-bar { display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
         .map-bar span:last-child { color: var(--muted); font-size: 0.86rem; }
-        #cy-map { width: 100%; height: max(480px, calc(100vh - 280px)); background: var(--surface); }   /* as tall as the window allows */
+        #trip-map { width: 100%; height: max(480px, calc(100vh - 280px)); background: var(--box); font-family: var(--font); }   /* as tall as the window allows */
+        /* Leaflet's own controls and boxes, in TruckSetu colours */
+        .leaflet-bar { border: 1px solid var(--line-strong) !important; border-radius: var(--radius) !important; overflow: hidden; box-shadow: none !important; }
+        .leaflet-bar a { background: var(--surface); color: var(--text); border-color: var(--line); }
+        .leaflet-bar a:hover { background: var(--box-hover); color: var(--text); }
+        .leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 80%, transparent) !important; color: var(--muted); font-size: 10px; }
+        .leaflet-control-attribution a { color: var(--muted); }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text); box-shadow: var(--shadow-hover); }
+        .leaflet-popup-content-wrapper { border: 1px solid var(--line); border-radius: var(--radius-card); }
+        .leaflet-popup-content { margin: 12px 16px; font-size: 0.86rem; line-height: 1.5; min-width: 210px; }
+        .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+        .city-label { background: transparent; border: 0; box-shadow: none; padding: 0 2px; color: var(--map-label); font-size: 11px; font-weight: 500;
+            text-shadow: 0 0 3px var(--surface), 0 0 3px var(--surface), 0 0 2px var(--surface); }
+        .city-label.strong { color: var(--text); font-size: 12px; font-weight: 700; }
+        .city-label::before, .map-tip::before { display: none; }   /* no pointer arrows */
+        .map-tip { background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: var(--shadow-hover);
+            font-size: 0.82rem; line-height: 1.45; padding: 7px 10px; }
+        .road-hit { cursor: help; }
+        .route-flow { animation: route-flow 1.4s linear infinite; }   /* dots move the way the truck drives */
+        @keyframes route-flow { to { stroke-dashoffset: -16; } }
+        .truck-pin span { display: inline-flex; align-items: center; gap: 4px; transform: translate(-50%, calc(-100% - 9px)); padding: 2px 8px 2px 3px; white-space: nowrap;
+            background: var(--surface); color: var(--text); border: 2px solid var(--trip); border-radius: 999px; font-size: 11px; font-weight: 700;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+        .truck-pin .icon { width: 18px; height: 18px; padding: 2px; border-radius: 50%; background: var(--trip); color: #FFFFFF; }
+        .truck-pin i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 2px 0 4px; }   /* one dot per trip when trucks share a label */
+        .tip-rule { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
+        .card-title { font-weight: 700; font-size: 1rem; }
+        .card-trips { display: grid; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+        .trip-swatch { display: inline-block; width: 22px; height: 4px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
         .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.82rem; }
         .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
         .trip-item { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
@@ -169,12 +198,12 @@
                 <div class="map-layout">
                     <div class="panel map-panel">
                         <div class="map-bar"><strong>India road network</strong><span id="map-status">Loading…</span></div>
-                        <div id="cy-map"></div>
+                        <div id="trip-map"></div>
                         <div class="legend">
-                            <span><span class="dot" style="background: var(--map-origin)"></span>This warehouse</span>
-                            <span><span class="dot" style="background: var(--blue)"></span>On the way</span>
-                            <span><span class="dot" style="background: var(--map-dest)"></span>Delivery city</span>
-                            <span><span class="dot" style="background: var(--map-city)"></span>Other city</span>
+                            <span><span class="dot" style="background: var(--map-origin)"></span>Your warehouse</span>
+                            <span><span class="trip-swatch" style="background: var(--route-1)"></span>Trip route, one colour per trip</span>
+                            <span><span class="dot" style="background: var(--map-city)"></span>City</span>
+                            <span>Truck positions are estimated at 50 km/h · click a city or hover a road for details</span>
                         </div>
                     </div>
                     <div class="panel">
@@ -209,7 +238,7 @@
     <script>
         const $ = id => document.getElementById(id);
         const E = App.escape;
-        let data = null, catalog = null, roads = null, cyMap = null, focusedTrip = null;
+        let data = null, catalog = null, roads = null, focusedTrip = null;
 
         const emptyRow = (columns, text) => `<tr><td colspan="${columns}" class="empty">${E(text)}</td></tr>`;
         const path = route => (route && route.path ? route.path : []).map(E).join(' → ');
@@ -244,7 +273,7 @@
             renderDrivers();
             renderLedger();
             renderMapTrips();
-            if (cyMap) highlight(focusedTrip);
+            drawMap();
         }
 
         function renderTrips() {
@@ -385,8 +414,8 @@
                     App.notify('Application declined', 'info');
                     await load();
                 },
-                'map-trip': async () => { focusedTrip = id; highlight(id); },
-                'map-all': async () => { focusedTrip = null; highlight(null); },
+                'map-trip': async () => { focusedTrip = id; drawMap(); fitMap(); },
+                'map-all': async () => { focusedTrip = null; drawMap(); fitMap(); },
             };
             if (actions[button.dataset.action]) App.busy(button, actions[button.dataset.action]);
         });
@@ -413,82 +442,238 @@
             if (item.dataset.view === 'map') openMap().catch(error => App.notify(error.message, 'error'));
         }));
 
-        // --- Network map (Cytoscape) ---
-        // Screen positions drawn by hand; the cities and roads themselves come from the server
-        const POSITIONS = {
-            Dehradun: [350, 60], Chandigarh: [230, 90], Amritsar: [100, 80], Ludhiana: [160, 115], Delhi: [280, 185], Noida: [320, 200],
-            Jaipur: [210, 285], Jodhpur: [120, 330], Agra: [330, 280], Gwalior: [340, 320], Lucknow: [450, 240], Kanpur: [420, 280],
-            Prayagraj: [470, 300], Varanasi: [510, 290], Patna: [570, 250], Bhopal: [310, 390], Indore: [240, 400], Nagpur: [390, 430],
-            Ahmedabad: [140, 415], Surat: [155, 470], Mumbai: [165, 530], Nashik: [205, 490], Pune: [210, 555], Kolkata: [640, 310],
-            Bhubaneswar: [590, 390], Hyderabad: [390, 510], Vijayawada: [480, 520], Visakhapatnam: [545, 460], Goa: [200, 620],
-            Bangalore: [320, 640], Mysore: [285, 670], Chennai: [460, 595], Madurai: [400, 670], Coimbatore: [330, 690],
-            Kochi: [275, 720], Trivandrum: [295, 760],
+        // --- Network map: Leaflet on a real map of India (grey map tiles by Esri, free without a key) ---
+        // Where each city is (latitude, longitude); the cities and roads themselves come from the server
+        const CITY_COORDS = {
+            Agra: [27.18, 78.01], Ahmedabad: [23.02, 72.57], Amritsar: [31.63, 74.87], Bangalore: [12.97, 77.59], Bhopal: [23.26, 77.41],
+            Bhubaneswar: [20.30, 85.82], Chandigarh: [30.73, 76.78], Chennai: [13.08, 80.27], Coimbatore: [11.02, 76.96], Dehradun: [30.32, 78.03],
+            Delhi: [28.61, 77.21], Goa: [15.49, 73.83], Gwalior: [26.22, 78.18], Hyderabad: [17.39, 78.49], Indore: [22.72, 75.86],
+            Jaipur: [26.91, 75.79], Jodhpur: [26.24, 73.02], Kanpur: [26.45, 80.33], Kochi: [9.93, 76.27], Kolkata: [22.57, 88.36],
+            Lucknow: [26.85, 80.95], Ludhiana: [30.90, 75.86], Madurai: [9.93, 78.12], Mumbai: [19.08, 72.88], Mysore: [12.30, 76.64],
+            Nagpur: [21.15, 79.09], Nashik: [20.00, 73.79], Noida: [28.54, 77.39], Patna: [25.59, 85.14], Prayagraj: [25.44, 81.85],
+            Pune: [18.52, 73.86], Surat: [21.17, 72.83], Trivandrum: [8.52, 76.94], Varanasi: [25.32, 82.97], Vijayawada: [16.51, 80.65],
+            Visakhapatnam: [17.69, 83.22],
         };
-        const edgeId = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+        // Cities close to a neighbour get their name on the left so the two labels don't overlap
+        const LABEL_LEFT = new Set(['Delhi', 'Mumbai', 'Mysore', 'Kochi', 'Kanpur', 'Prayagraj', 'Jodhpur', 'Amritsar', 'Ludhiana']);
+        const TILES = { light: 'World_Light_Gray_Base', dark: 'World_Dark_Gray_Base' };
+        const AVERAGE_SPEED_KMH = 50;   // the same estimate the driver page uses
+        const ROUTE_COLOURS = 8;        // --route-1 … --route-8; a ninth trip on the road at once is drawn in --route-other
+        const tripSlots = new Map();    // trip id → colour slot, kept while the trip is on the road so colours never shift
+        let leafletMap = null, tileLayer = null, overlay = null, truckLayer = null, cityLabels = [], truckPins = [];
+
+        const lastCity = trip => (trip.route.path || []).slice(-1)[0] || '';
+        const tripColour = tripId => App.token(tripSlots.has(tripId) ? `--route-${tripSlots.get(tripId)}` : '--route-other');
+
+        // A trip takes the first free colour when it appears and gives it back when it finishes
+        function assignTripColours() {
+            const onRoad = new Set(data.active_trips.map(t => t.id));
+            for (const id of [...tripSlots.keys()]) if (!onRoad.has(id)) tripSlots.delete(id);
+            const used = new Set(tripSlots.values());
+            [...data.active_trips].sort((a, b) => a.id - b.id).forEach(t => {
+                if (tripSlots.has(t.id)) return;
+                for (let slot = 1; slot <= ROUTE_COLOURS; slot++) {
+                    if (!used.has(slot)) { tripSlots.set(t.id, slot); used.add(slot); return; }
+                }
+            });
+        }
 
         function renderMapTrips() {
+            assignTripColours();
             $('map-trips').innerHTML = data.active_trips.length ? data.active_trips.map(t => `
                 <div class="trip-item">
-                    <div><strong>Trip #${t.id}</strong> ${App.badge(t.status)}</div>
+                    <div><span class="trip-swatch" style="background: ${tripColour(t.id)}"></span><strong>Trip #${t.id}</strong> ${App.badge(t.status)}</div>
                     <div class="route">${path(t.route)}</div>
                     <div class="small muted">${E(t.truck_plate)} · ${E(t.driver_name)} · ${App.formatNumber(t.distance_km)} km</div>
                     <button class="btn btn-secondary btn-small" data-action="map-trip" data-id="${t.id}">${App.icon('pin')}Show on map</button>
                 </div>`).join('') : '<p class="empty">No trips on the road.</p>';
         }
 
-        // The map's colours come from the theme tokens, so it follows the light/dark switch
-        function mapStyle() {
-            const t = App.token;
-            return [
-                { selector: 'node', style: { 'background-color': t('--map-city'), label: 'data(label)', color: t('--map-label'), 'font-family': 'Inter Tight, system-ui, sans-serif',
-                    'font-size': '10px', 'font-weight': 500, 'text-valign': 'bottom', 'text-margin-y': 4, width: 12, height: 12 } },
-                { selector: 'edge', style: { width: 2, 'line-color': t('--map-road'), 'curve-style': 'bezier' } },
-                { selector: 'node.waypoint', style: { 'background-color': t('--blue'), color: t('--text'), width: 15, height: 15 } },
-                { selector: 'node.destination', style: { 'background-color': t('--map-dest'), color: t('--text'), 'font-weight': 700, width: 20, height: 20,
-                    'underlay-color': t('--map-dest'), 'underlay-opacity': 0.25, 'underlay-padding': 6, 'underlay-shape': 'ellipse' } },
-                { selector: 'node.origin', style: { 'background-color': t('--map-origin'), color: t('--text'), 'font-weight': 700, width: 22, height: 22,
-                    'underlay-color': t('--map-origin'), 'underlay-opacity': 0.15, 'underlay-padding': 6, 'underlay-shape': 'ellipse' } },
-                { selector: 'edge.active', style: { width: 4, 'line-color': t('--blue'), 'underlay-color': t('--blue'), 'underlay-opacity': 0.18, 'underlay-padding': 3 } },
-            ];
+        // Where the truck should be by now: time since it left (or delivered) × the average speed, along its route's roads
+        function truckPosition(trip) {
+            const legs = trip.route.legs || [];
+            const total = legs.reduce((sum, leg) => sum + leg.km, 0);
+            if (!total) return null;
+            const kmSince = time => Math.max(0, (Date.now() - App.parseTime(time)) / 3600000 * AVERAGE_SPEED_KMH);
+            const returning = trip.status === 'returning';
+            const done = Math.min(total, kmSince(returning ? trip.delivered_at : trip.dispatched_at));
+            let along = returning ? total - done : done;
+            for (const leg of legs) {
+                const from = CITY_COORDS[leg.from], to = CITY_COORDS[leg.to];
+                if (along <= leg.km && from && to) {
+                    const f = along / leg.km;
+                    return { latlng: [from[0] + (to[0] - from[0]) * f, from[1] + (to[1] - from[1]) * f], done, total, returning };
+                }
+                along -= leg.km;
+            }
+            return null;
+        }
+
+        function truckText(trip, where) {
+            const left = where.total - where.done;
+            const progress = where.returning
+                ? (left > 0 ? `Driving back · about ${App.formatNumber(where.done)} km to go home` : 'Should be back by now; waiting for the driver to confirm')
+                : (left > 0 ? `About ${App.formatNumber(where.done)} of ${App.formatNumber(where.total)} km · ${App.formatNumber(left / AVERAGE_SPEED_KMH, 1)} h to ${E(lastCity(trip))}`
+                            : `Should have reached ${E(lastCity(trip))}; waiting for the driver to confirm delivery`);
+            return `<strong>Trip #${trip.id} · ${E(trip.truck_plate)}</strong><br>${E(trip.driver_name)} · ${progress}`;
+        }
+
+        function cityCard(city) {
+            const warehouse = (catalog.warehouses || []).find(w => w.city === city);
+            const through = data.active_trips.filter(t => (t.route.path || []).includes(city));
+            const roadCount = roads.roads.filter(r => r.from === city || r.to === city).length;
+            const where = warehouse ? `${E(warehouse.code)} · ${E(warehouse.name)}${city === data.warehouse.city ? ' (yours)' : ''}` : 'No warehouse here';
+            return `<div class="card-title">${E(city)}</div><div class="muted">${where} · ${roadCount} roads</div>
+                <div class="card-trips">${through.length ? through.map(t => `<div><span class="trip-swatch" style="background: ${tripColour(t.id)}"></span>Trip #${t.id} · ${E(t.truck_plate)} → ${E(lastCity(t))}</div>`).join('')
+                                                       : '<div class="muted">None of your trips pass through here.</div>'}</div>`;
+        }
+
+        function networkBounds() {
+            return L.latLngBounds(roads.cities.map(c => CITY_COORDS[c]).filter(Boolean));
+        }
+
+        // Shows the chosen trip's route, or the whole network
+        function fitMap() {
+            if (!leafletMap) return;
+            const trip = data.active_trips.find(t => t.id === focusedTrip);
+            const points = trip ? (trip.route.path || []).map(c => CITY_COORDS[c]).filter(Boolean) : [];
+            leafletMap.fitBounds(points.length > 1 ? L.latLngBounds(points) : networkBounds(),
+                                 { paddingTopLeft: [40, 70], paddingBottomRight: [40, 30], maxZoom: 7 });   // room above for truck labels
+            $('map-status').textContent = trip ? `Showing trip #${trip.id}` : `${roads.cities.length} cities · ${roads.roads.length} roads`;
+        }
+
+        function setTiles() {
+            if (tileLayer) tileLayer.remove();
+            tileLayer = L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${TILES[App.theme()]}/MapServer/tile/{z}/{y}/{x}`, {
+                maxNativeZoom: 16, attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ',
+            }).addTo(leafletMap);
         }
 
         async function openMap() {
-            if (cyMap) return;
-            if (typeof cytoscape === 'undefined') throw new Error('The map library could not be loaded (it needs an internet connection)');
+            if (typeof L === 'undefined') throw new Error('The map library could not be loaded (it needs an internet connection)');
             roads = roads || await App.api('/api/network');
-            const elements = roads.cities.map((city, i) => {
-                const [x, y] = POSITIONS[city] || [40, 40 + i * 24];
-                return { data: { id: city, label: city }, position: { x: x * 1.35, y: y * 1.35 } };
-            });
-            roads.roads.forEach(r => elements.push({ data: { id: edgeId(r.from, r.to), source: r.from, target: r.to, km: r.km } }));
-
-            cyMap = cytoscape({ container: $('cy-map'), elements, layout: { name: 'preset' }, style: mapStyle() });
-            const idle = () => `${roads.cities.length} cities · ${roads.roads.length} roads`;
-            cyMap.on('mouseover', 'node', e => { $('map-status').textContent = `${e.target.id()}: ${e.target.connectedEdges().length} roads`; });
-            cyMap.on('mouseover', 'edge', e => { $('map-status').textContent = `${e.target.source().id()} – ${e.target.target().id()}: ${e.target.data('km')} km`; });
-            cyMap.on('mouseout', () => { $('map-status').textContent = idle(); });
-            $('map-status').textContent = idle();
-            highlight(focusedTrip);
+            if (leafletMap) {
+                leafletMap.invalidateSize();   // the map was hidden while another page was open
+                return;
+            }
+            leafletMap = L.map('trip-map', { minZoom: 4, maxZoom: 10, zoomSnap: 0.25 });
+            leafletMap.attributionControl.setPrefix(false);
+            leafletMap.on('zoomend', drawTrucks);
+            leafletMap.on('moveend resize', () => requestAnimationFrame(declutterLabels));   // after Leaflet has moved the labels
+            setTiles();
+            fitMap();   // the map needs its view before anything is placed on screen
+            drawMap();
         }
 
-        window.addEventListener('themechange', () => { if (cyMap) cyMap.style(mapStyle()); });
+        // Draws roads, cities, trip routes and trucks on top of the map; runs again on refresh, theme change and "Show on map"
+        function drawMap() {
+            if (!leafletMap || !roads) return;
+            if (overlay) overlay.remove();
+            overlay = L.layerGroup().addTo(leafletMap);
+            const t = App.token, surface = t('--surface');
+            const trips = data.active_trips;
+            const faded = trip => focusedTrip !== null && trip.id !== focusedTrip;
 
-        // Marks the routes of all trips on the road, or only one trip when tripId is given
-        function highlight(tripId) {
-            if (!cyMap) return;
-            cyMap.elements().removeClass('origin waypoint destination active');
-            const trips = data.active_trips.filter(t => tripId === null || t.id === tripId);
-            trips.forEach(t => {
-                const cities = t.route.path || [];
-                cities.forEach((city, i) => {
-                    if (i > 0) cyMap.getElementById(edgeId(cities[i - 1], city)).addClass('active');
-                    if (i > 0 && i < cities.length - 1) cyMap.getElementById(city).addClass('waypoint');
-                });
-                if (cities.length) cyMap.getElementById(cities[cities.length - 1]).addClass('destination');
+            // Roads: a thin line, plus a wide invisible one on top so they are easy to hover
+            roads.roads.forEach(r => {
+                const ends = [CITY_COORDS[r.from], CITY_COORDS[r.to]];
+                if (!ends[0] || !ends[1]) return;
+                L.polyline(ends, { color: t('--map-road'), weight: 1.5, interactive: false }).addTo(overlay);
+                L.polyline(ends, { opacity: 0, weight: 14, className: 'road-hit' })
+                    .bindTooltip(`<strong>${E(r.from)} – ${E(r.to)}</strong><br>${E(r.road)} · ${App.formatNumber(r.km)} km`, { sticky: true, className: 'map-tip' })
+                    .addTo(overlay);
             });
-            cyMap.getElementById(data.warehouse.city).removeClass('waypoint destination').addClass('origin');
-            if (tripId !== null) $('map-status').textContent = `Showing trip #${tripId}`;
+
+            // Trip routes: the trip's colour on a light casing, with dots flowing the way the truck drives
+            trips.forEach(trip => {
+                const points = (trip.route.path || []).map(c => CITY_COORDS[c]).filter(Boolean);
+                if (points.length < 2) return;
+                const opacity = faded(trip) ? 0.15 : 1;
+                L.polyline(points, { color: surface, weight: 8, opacity, interactive: false }).addTo(overlay);
+                L.polyline(points, { color: tripColour(trip.id), weight: 4, opacity })
+                    .bindTooltip(`<strong>Trip #${trip.id}</strong> · ${path(trip.route)}<br>${E(trip.truck_plate)} · ${E(trip.driver_name)} · ${App.formatNumber(trip.distance_km)} km`,
+                                 { sticky: true, className: 'map-tip' })
+                    .addTo(overlay);
+                if (!faded(trip)) {
+                    L.polyline(trip.status === 'returning' ? [...points].reverse() : points,
+                               { color: surface, weight: 2, opacity: 0.9, dashArray: '1 15', className: 'route-flow', interactive: false }).addTo(overlay);
+                }
+            });
+
+            // Cities: your warehouse in ink, delivery cities in their trip's colour, the rest small and grey
+            cityLabels = [];
+            roads.cities.forEach(city => {
+                const at = CITY_COORDS[city];
+                if (!at) return;
+                const home = city === data.warehouse.city;
+                const delivery = trips.find(trip => lastCity(trip) === city && !faded(trip));
+                const style = home ? { radius: 7, fillColor: t('--map-origin'), weight: 2 }
+                            : delivery ? { radius: 6, fillColor: tripColour(delivery.id), weight: 2 }
+                            : { radius: 4, fillColor: t('--map-city'), weight: 1.5 };
+                const left = LABEL_LEFT.has(city);
+                const onRoute = trips.some(trip => !faded(trip) && (trip.route.path || []).includes(city));
+                const marker = L.circleMarker(at, { ...style, color: surface, fillOpacity: 1 })
+                    .bindTooltip(E(city), { permanent: true, direction: left ? 'left' : 'right', offset: [left ? -5 : 5, 0],
+                                            className: `city-label${home ? ' strong home' : delivery ? ' strong' : ''}` })
+                    .bindPopup(() => cityCard(city))
+                    .addTo(overlay);
+                cityLabels.push({ tooltip: marker.getTooltip(), priority: home ? 3 : delivery ? 2 : onRoute ? 1 : 0 });
+            });
+
+            drawTrucks();
         }
+
+        // Trucks: a dot at each estimated spot, and a label above it; trucks closer than 40 px on screen share one label.
+        // Redrawn after every zoom, because what is "close" depends on the zoom.
+        function drawTrucks() {
+            if (truckLayer) truckLayer.remove();
+            truckLayer = L.layerGroup().addTo(leafletMap);
+            truckPins = [];
+            const surface = App.token('--surface');
+            const faded = trip => focusedTrip !== null && trip.id !== focusedTrip;
+            const groups = [];
+            data.active_trips.forEach(trip => {
+                const where = truckPosition(trip);
+                if (!where) return;
+                const opacity = faded(trip) ? 0.35 : 1;
+                L.circleMarker(where.latlng, { radius: 5, color: surface, weight: 2, fillColor: tripColour(trip.id), fillOpacity: opacity, opacity, interactive: false }).addTo(truckLayer);
+                const point = leafletMap.latLngToLayerPoint(where.latlng);
+                const near = groups.find(group => group.point.distanceTo(point) < 40);
+                if (near) near.trucks.push({ trip, where });
+                else groups.push({ point, latlng: where.latlng, trucks: [{ trip, where }] });
+            });
+            groups.forEach(({ latlng, trucks }) => {
+                const single = trucks.length === 1;
+                const numbers = single ? `#${trucks[0].trip.id}` : trucks.map(({ trip }) => `<i style="background: ${tripColour(trip.id)}"></i>${trip.id}`).join(' ');
+                const icon = L.divIcon({ className: 'truck-pin', iconSize: null,
+                                         html: `<span style="--trip: ${single ? tripColour(trucks[0].trip.id) : 'var(--muted)'}">${App.icon('truck')}${numbers}</span>` });
+                const pin = L.marker(latlng, { icon, opacity: trucks.every(({ trip }) => faded(trip)) ? 0.35 : 1, zIndexOffset: 1000, keyboard: false })
+                    .bindTooltip(trucks.map(({ trip, where }) => truckText(trip, where)).join('<hr class="tip-rule">'), { className: 'map-tip', direction: 'auto', offset: [14, -20] })
+                    .addTo(truckLayer);
+                truckPins.push(pin);
+            });
+            requestAnimationFrame(declutterLabels);
+        }
+
+        // Hides city names that would overlap a truck label or a more important name. Your warehouse's name always stays;
+        // after it come delivery cities, then cities on a route, then the rest.
+        function declutterLabels() {
+            const kept = truckPins.map(pin => pin.getElement() && pin.getElement().firstElementChild).filter(Boolean).map(el => el.getBoundingClientRect());
+            [...cityLabels].sort((a, b) => b.priority - a.priority).forEach(({ tooltip, priority }) => {
+                const element = tooltip.getElement();
+                if (!element) return;
+                element.style.visibility = '';
+                const box = element.getBoundingClientRect();
+                const clash = kept.some(k => box.left < k.right + 2 && box.right > k.left - 2 && box.top + 3 < k.bottom && box.bottom - 3 > k.top);   // a label's box is taller than its text
+                if (clash && priority < 3) element.style.visibility = 'hidden';
+                else kept.push(box);
+            });
+        }
+
+        window.addEventListener('themechange', () => {
+            if (leafletMap) { setTiles(); drawMap(); }
+            if (data) renderMapTrips();
+        });
 
         // --- Start: models for the truck form, then the dashboard; refresh every 30 s while the tab is visible ---
         (async () => {

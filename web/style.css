@@ -29,7 +29,10 @@
     --map-city: #BDBDBD;
     --map-label: #666666;
     --map-origin: #222222;
-    --map-dest: #B7791F;
+    /* Trip routes: one colour per trip, in this fixed order (checked for colour-blind separation) */
+    --route-1: #2F6DB0; --route-2: #EB6834; --route-3: #1BAF7A; --route-4: #EDA100;
+    --route-5: #E87BA4; --route-6: #008300; --route-7: #6250D6; --route-8: #E34948;
+    --route-other: #8A8A8A;
 
     /* Login illustration: the day scene (sun and clouds) */
     --art-sky-top: #DCE6F1;
@@ -87,7 +90,9 @@
     --map-city: #555555;
     --map-label: #A3A3A3;
     --map-origin: #EDEDED;
-    --map-dest: #F0C27E;
+    --route-1: #3987E5; --route-2: #D95926; --route-3: #199E70; --route-4: #C98500;
+    --route-5: #D55181; --route-6: #008300; --route-7: #9085E9; --route-8: #E66767;
+    --route-other: #7A7A7A;
 
     /* Login illustration: the night scene (half moon, stars, lit windows, headlights) */
     --art-sky-top: #0C1219;

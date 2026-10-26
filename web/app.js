@@ -194,5 +194,5 @@ const App = (() => {
         button.addEventListener('click', () => setTheme(theme() === 'dark' ? 'light' : 'dark')));
     updateThemeToggles();
 
-    return { icon, escape, api, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy, theme, setTheme, token };
+    return { icon, escape, api, parseTime, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy, theme, setTheme, token };
 })();
