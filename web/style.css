@@ -350,6 +350,31 @@ td strong { font-weight: 600; }
 .field input::placeholder { color: var(--muted); opacity: 0.8; }
 .hint { color: var(--muted); font-size: 0.8rem; line-height: 1.45; }
 .form-actions { display: flex; gap: 10px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+/* Password boxes: an eye button inside, on the right (added by app.js) */
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 46px; }
+.reveal {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background-color var(--speed) ease-out, color var(--speed) ease-out;
+}
+.reveal:hover { background: var(--box); color: var(--text); }
+/* Phone numbers: the country code picker, then the number */
+.phone-row { display: flex; gap: 8px; }
+.phone-row select { width: 120px; flex: none; }
+.phone-row input { flex: 1; min-width: 0; }
 
 /* --- Notices and toasts --- */
 .notice { background: var(--box); border-radius: var(--radius); padding: 12px 14px; font-size: 0.9rem; line-height: 1.6; }

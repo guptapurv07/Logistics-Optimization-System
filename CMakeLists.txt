@@ -26,9 +26,15 @@ add_executable(LogisticsApp
     src/server.cpp
     src/network.cpp
     src/pricing.cpp
+    src/settings.cpp
+    src/email.cpp
+    src/google.cpp
+    src/codes.cpp
 )
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(SQLite3 REQUIRED)
-target_link_libraries(LogisticsApp Threads::Threads SQLite::SQLite3)
+# libcurl sends the email codes and checks Google sign-ins
+find_package(CURL REQUIRED)
+target_link_libraries(LogisticsApp Threads::Threads SQLite::SQLite3 CURL::libcurl)

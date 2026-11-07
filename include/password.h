@@ -22,4 +22,11 @@ bool verifyPassword(const std::string& password, const std::string& stored);
 
 std::string toHex(const std::uint8_t* data, std::size_t size);
 
+// --- RANDOM TOKENS AND CODES ---
+// Both come from the operating system's secure random source (std::random_device on macOS and Linux)
+std::string randomToken();                      // 32 random bytes as 64 hex characters: login sessions, email-code tickets
+std::string randomDigits(std::size_t count);    // e.g. "048213": the codes sent by email
+std::string sha256Hex(const std::string& data); // what the database keeps instead of a token or code
+bool sameText(const std::string& a, const std::string& b);  // takes as long wherever the two first differ
+
 #endif

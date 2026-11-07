@@ -228,3 +228,37 @@ std::string toHex(const std::uint8_t* data, std::size_t size) {
     }
     return hex;
 }
+
+std::string randomToken() {
+    std::random_device random;
+    std::uint8_t bytes[32];
+    for (std::size_t i = 0; i < sizeof(bytes); i += 4) {
+        std::uint32_t bits = random();
+        for (std::size_t j = 0; j < 4; ++j) bytes[i + j] = std::uint8_t(bits >> (8 * j));
+    }
+    return toHex(bytes, sizeof(bytes));
+}
+
+std::string randomDigits(std::size_t count) {
+    std::random_device random;
+    std::string digits;
+    while (digits.size() < count) {
+        std::uint32_t bits = random();
+        // 2^32 isn't a multiple of 10, so the top few values are skipped to keep every digit equally likely
+        if (bits >= 4294967290u) continue;
+        digits += char('0' + bits % 10);
+    }
+    return digits;
+}
+
+std::string sha256Hex(const std::string& data) {
+    std::array<std::uint8_t, 32> digest = sha256(data);
+    return toHex(digest.data(), digest.size());
+}
+
+bool sameText(const std::string& a, const std::string& b) {
+    if (a.size() != b.size()) return false;
+    unsigned char difference = 0;
+    for (std::size_t i = 0; i < a.size(); ++i) difference |= static_cast<unsigned char>(a[i] ^ b[i]);
+    return difference == 0;
+}

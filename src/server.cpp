@@ -1,7 +1,9 @@
 #include "../include/server.h"
 #include "../include/accounts.h"
 #include "../include/api.h"
+#include "../include/codes.h"
 #include "../include/dispatch.h"
+#include "../include/google.h"
 #include "../include/manager.h"
 #include "../include/orders.h"
 #include "../include/pricing.h"
@@ -32,9 +34,6 @@ const std::map<std::string, std::string> kPageRoles = {
     {"/index.html", "manager"}, {"/driver.html", "driver"}, {"/customer.html", "customer"}};
 const std::map<std::string, std::string> kHomePages = {
     {"manager", "/index.html"}, {"driver", "/driver.html"}, {"customer", "/customer.html"}};
-// How the login page names each kind of account ("Continue as truck driver")
-const std::map<std::string, std::string> kRoleNames = {
-    {"manager", "warehouse manager"}, {"driver", "truck driver"}, {"customer", "customer"}};
 
 std::string cookieValue(const Request& req, const std::string& name) {
     std::string header = req.get_header_value("Cookie");
@@ -82,6 +81,30 @@ void sendJson(Response& res, const json& body, int status = 200) {
 void setSessionCookie(Response& res, const std::string& token, int maxAgeSeconds) {
     res.set_header("Set-Cookie", std::string(kSessionCookie) + "=" + token +
                                      "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" + std::to_string(maxAgeSeconds));
+}
+
+// Logs the user in: a new session in an HttpOnly cookie, and where the page should go next
+void startSession(Response& res, Database& db, const SessionUser& user) {
+    setSessionCookie(res, createSession(db, user.id), kSessionHours * 3600);
+    sendJson(res, {{"user", userJson(user)}, {"home", kHomePages.at(user.role)}});
+}
+
+// After a new account is saved: customers and new managers are logged in straight away; drivers wait for their manager
+void answerNewAccount(Response& res, Database& db, json result) {
+    if (result["can_login"].get<bool>()) {
+        setSessionCookie(res, createSession(db, result["user_id"].get<std::int64_t>()), kSessionHours * 3600);
+        result["home"] = kHomePages.at(result["role"].get<std::string>());
+    }
+    sendJson(res, result, 201);
+}
+
+// The kind of account chosen on the login page: "" (any), customer, driver or manager
+std::string chosenRole(const Fields& fields) {
+    std::string role = fields.optionalText("role", "Account type", 20);
+    if (!role.empty() && role != "customer" && role != "driver" && role != "manager") {
+        throw ApiError(400, "Account type must be customer, driver or manager");
+    }
+    return role;
 }
 
 // Turns an ApiError into {"error": message} with its status; anything unexpected is logged and becomes a 500
@@ -182,15 +205,16 @@ json networkJson(const RoadMap& roadMap) {
 
 }  // namespace
 
-void registerRoutes(httplib::Server& server, const RoadMap& roadMap, const std::string& databasePath) {
+void registerRoutes(httplib::Server& server, const RoadMap& roadMap, const std::string& databasePath, const Settings& settings) {
     gDatabasePath = databasePath;
     const RoadNetwork& network = roadMap.network;
 
     // --- PAGE GUARDS ---
-    // A role's page is only served to a logged-in user with that role; anyone else lands on the login page
+    // The site opens on the welcome page. A role's page is only served to a logged-in user with that role;
+    // anyone else lands on the login page.
     server.set_pre_routing_handler([](const Request& req, Response& res) {
         if (req.path == "/") {
-            res.set_redirect("/login.html");
+            res.set_redirect("/welcome.html");
             return httplib::Server::HandlerResponse::Handled;
         }
         auto page = kPageRoles.find(req.path);
@@ -227,33 +251,78 @@ void registerRoutes(httplib::Server& server, const RoadMap& roadMap, const std::
         sendJson(res, networkJson(roadMap));
     }));
 
-    server.Post("/api/register", api([&roadMap](const Request& req, Response& res) {
-        Database& db = threadDatabase();
-        json result = registerAccount(db, parseBody(req), roadMap);
-        // Customers and new managers are logged in straight away; drivers wait for their manager
-        if (result["can_login"].get<bool>()) {
-            setSessionCookie(res, createSession(db, result["user_id"].get<std::int64_t>()), kSessionHours * 3600);
-            result["home"] = kHomePages.at(result["role"].get<std::string>());
-        }
-        sendJson(res, result, 201);
+    // --- LOGIN AND SIGN-UP ---
+    // What the login page can offer: the Google button (with this site's client ID) and how codes are delivered
+    server.Get("/api/auth/options", api([&settings](const Request&, Response& res) {
+        sendJson(res, {{"google_client_id", settings.googleOn() ? json(settings.googleClientId) : json()},
+                       {"email", settings.emailOn() ? "email" : "console"}});
     }));
 
-    server.Post("/api/login", api([](const Request& req, Response& res) {
+    // A sign-up with a typed email first gets a code by email ({"verify": ...}); the account is made once the code is
+    // right (/api/verify). With "google_credential" the email is already confirmed by Google, so it is made at once.
+    server.Post("/api/register", api([&roadMap, &settings](const Request& req, Response& res) {
+        Database& db = threadDatabase();
+        json body = parseBody(req);
+        if (body.contains("google_credential")) {
+            std::string credential = Fields(body).text("google_credential", "Google sign-in", 1, 4096);
+            GoogleAccount google = checkGoogleToken(settings, credential);
+            answerNewAccount(res, db, createAccount(db, checkSignup(db, body, roadMap, &google), roadMap));
+            return;
+        }
+        json signup = checkSignup(db, body, roadMap, nullptr);
+        sendJson(res, {{"verify", sendSignupCode(db, settings, signup)}});
+    }));
+
+    // Step 1 of a password login: the password, and then a code by email ({"verify": ...}) before any session starts.
+    // The login page first asks which kind of account this is; another kind is refused here.
+    server.Post("/api/login", api([&settings](const Request& req, Response& res) {
         Database& db = threadDatabase();
         json body = parseBody(req);
         Fields fields(body);
-        std::string username = fields.text("username", "Username", 1, 60);
+        std::string login = fields.text("username", "Username or email", 1, 120);
         if (!body.contains("password") || !body.at("password").is_string()) throw ApiError(400, "Password is required");
-        // The login page first asks which kind of account this is; another kind is refused before any session starts
-        std::string role = fields.optionalText("role", "Account type", 20);
-        if (!role.empty() && !kRoleNames.count(role)) throw ApiError(400, "Account type must be customer, driver or manager");
-        SessionUser user = checkLogin(db, username, body.at("password").get<std::string>());
-        if (!role.empty() && role != user.role) {
-            const std::string& name = kRoleNames.at(user.role);
-            throw ApiError(403, "This is a " + name + " account. Go back and choose \"Continue as " + name + "\".");
+        std::string role = chosenRole(fields);
+        SessionUser user = checkLogin(db, login, body.at("password").get<std::string>());
+        checkCanLogIn(user, role);
+        sendJson(res, {{"verify", sendLoginCode(db, settings, user.id, user.email, user.fullName)}});
+    }));
+
+    // Step 2: the code from the email. Finishes a login, or saves the new account it confirmed.
+    server.Post("/api/verify", api([&roadMap](const Request& req, Response& res) {
+        Database& db = threadDatabase();
+        json body = parseBody(req);
+        Fields fields(body);
+        ConfirmedCode confirmed = confirmCode(db, fields.text("ticket", "Ticket", 1, 64), fields.text("code", "Code", 1, 20));
+        if (confirmed.purpose == "signup") {
+            answerNewAccount(res, db, createAccount(db, confirmed.signup, roadMap));
+            return;
         }
-        setSessionCookie(res, createSession(db, user.id), kSessionHours * 3600);
-        sendJson(res, {{"user", userJson(user)}, {"home", kHomePages.at(user.role)}});
+        std::optional<SessionUser> user = loadUser(db, confirmed.userId);
+        if (!user) throw ApiError(410, "This account no longer exists");
+        checkCanLogIn(*user, "");   // a driver's approval could have been withdrawn while the code was out
+        startSession(res, db, *user);
+    }));
+
+    server.Post("/api/verify/resend", api([&settings](const Request& req, Response& res) {
+        json body = parseBody(req);
+        sendJson(res, {{"verify", resendCode(threadDatabase(), settings, Fields(body).text("ticket", "Ticket", 1, 64))}});
+    }));
+
+    // "Continue with Google": logs in the account with that Google email, no code needed (Google has checked who it is).
+    // With no such account the answer is {"signup": {email, name, username}}, and the page asks for the rest.
+    server.Post("/api/auth/google", api([&settings](const Request& req, Response& res) {
+        Database& db = threadDatabase();
+        json body = parseBody(req);
+        Fields fields(body);
+        GoogleAccount google = checkGoogleToken(settings, fields.text("credential", "Google sign-in", 1, 4096));
+        std::string role = chosenRole(fields);
+        std::optional<SessionUser> user = findUserByEmail(db, google.email);
+        if (!user) {
+            sendJson(res, {{"signup", {{"email", google.email}, {"name", google.name}, {"username", suggestUsername(db, google.email)}}}});
+            return;
+        }
+        checkCanLogIn(*user, role);
+        startSession(res, db, *user);
     }));
 
     server.Post("/api/logout", api([](const Request& req, Response& res) {

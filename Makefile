@@ -1,10 +1,12 @@
 CXX = g++
 # -MMD -MP: also record which headers each file uses, so editing a .h rebuilds what depends on it
 CXXFLAGS = -std=c++17 -Wall -O2 -I include -pthread -MMD -MP
-LDLIBS = -lsqlite3
+# libcurl sends the email codes and checks Google sign-ins (it comes with macOS; on Linux: libcurl4-openssl-dev)
+LDLIBS = -lsqlite3 -lcurl
 
 OBJS = src/main.o src/routing.o src/db.o src/schema.o src/password.o src/seed.o \
-       src/api.o src/accounts.o src/orders.o src/dispatch.o src/manager.o src/server.o src/network.o src/pricing.o
+       src/api.o src/accounts.o src/orders.o src/dispatch.o src/manager.o src/server.o src/network.o src/pricing.o \
+       src/settings.o src/email.o src/google.o src/codes.o
 TARGET = app
 DATABASE = data/logistics.db
 

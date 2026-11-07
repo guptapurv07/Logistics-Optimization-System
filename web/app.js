@@ -23,6 +23,8 @@ const App = (() => {
         <symbol id="i-warehouse" viewBox="0 0 24 24"><path d="M3 21V9.5L12 4l9 5.5V21"/><path d="M7 21v-8h10v8"/><path d="M7 16h10M7 18.5h10"/></symbol>
         <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
         <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+        <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17.4 17.4 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.6-.6 5-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
     </svg>`;
 
     function icon(name, extraClass = '') {
@@ -134,11 +136,12 @@ const App = (() => {
         if (tone !== 'error') setTimeout(() => toast.remove(), 6000);
     }
 
+    // Logs out and goes back to the welcome page
     async function logout() {
         try {
             await api('/api/logout', {});
         } finally {
-            location.href = '/login.html';
+            location.href = '/welcome.html';
         }
     }
 
@@ -196,6 +199,61 @@ const App = (() => {
         }));
     }
 
+    // --- Password boxes: an eye button shows or hides what was typed; the box hides again when its form is sent ---
+    function addPasswordToggles() {
+        document.querySelectorAll('input[type="password"]').forEach(input => {
+            const wrap = document.createElement('div');
+            wrap.className = 'password-wrap';
+            input.parentNode.insertBefore(wrap, input);
+            wrap.appendChild(input);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'reveal';
+            const show = visible => {
+                input.type = visible ? 'text' : 'password';
+                const label = visible ? 'Hide password' : 'Show password';
+                button.innerHTML = icon(visible ? 'eye-off' : 'eye');
+                button.title = label;
+                button.setAttribute('aria-label', label);
+                button.setAttribute('aria-pressed', String(visible));
+            };
+            button.addEventListener('click', () => {
+                show(input.type === 'password');
+                input.focus();
+            });
+            if (input.form) input.form.addEventListener('submit', () => show(false));
+            show(false);
+            wrap.appendChild(button);
+        });
+    }
+
+    // --- Phone numbers: a country code picker (India first) beside the number ---
+    const COUNTRY_CODES = [
+        ['India', '+91'], ['Australia', '+61'], ['Bangladesh', '+880'], ['Bhutan', '+975'], ['Canada', '+1'], ['Germany', '+49'],
+        ['Kuwait', '+965'], ['Malaysia', '+60'], ['Nepal', '+977'], ['Oman', '+968'], ['Qatar', '+974'], ['Saudi Arabia', '+966'],
+        ['Singapore', '+65'], ['Sri Lanka', '+94'], ['United Arab Emirates', '+971'], ['United Kingdom', '+44'], ['United States', '+1'],
+    ];
+
+    // Fills the picker; an Indian number is 10 digits ("XXXXX XXXXX"), other countries' numbers vary in length
+    function phoneField(codeSelect, numberInput) {
+        // The code comes first, so the narrow picker always shows it ("+91 India"); the open list shows the full names
+        codeSelect.innerHTML = COUNTRY_CODES.map(([country, code]) => `<option value="${code}">${code} ${escape(country)}</option>`).join('');
+        const fit = () => {
+            const india = codeSelect.value === '+91';
+            numberInput.placeholder = india ? 'XXXXX XXXXX' : 'Phone number';
+            numberInput.pattern = india ? '[0-9]{5} ?[0-9]{5}' : '[0-9][0-9 \\-]{5,13}';
+            numberInput.title = india ? '10 digits, like XXXXX XXXXX' : 'The number without the country code';
+        };
+        codeSelect.addEventListener('change', fit);
+        fit();
+    }
+
+    // "+91 98765 43210", or "" when no number was typed
+    function phoneValue(codeSelect, numberInput) {
+        const number = numberInput.value.trim();
+        return number ? `${codeSelect.value} ${number}` : '';
+    }
+
     // --- Light / dark mode ---
     // Light is the default. Each page's <head> applies a saved choice before drawing, so there is no flash.
     const THEME_KEY = 'trucksetu-theme';
@@ -234,6 +292,8 @@ const App = (() => {
     document.querySelectorAll('[data-theme-toggle]').forEach(button =>
         button.addEventListener('click', () => setTheme(theme() === 'dark' ? 'light' : 'dark')));
     updateThemeToggles();
+    addPasswordToggles();
 
-    return { icon, escape, api, parseTime, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy, confirm, theme, setTheme, token };
+    return { icon, escape, api, parseTime, formatDate, formatNumber, formatMoney, quantity, duration, badge, notify, logout, fillSelect, busy, confirm,
+             phoneField, phoneValue, theme, setTheme, token };
 })();

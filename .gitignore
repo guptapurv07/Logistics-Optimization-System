@@ -13,5 +13,8 @@
 /data/logistics.db-wal
 /data/logistics.db-shm
 
+# Settings with passwords (Google client ID, mail server login): they stay on this computer. See .env.example.
+/.env
+
 # macOS folder settings
 .DS_Store

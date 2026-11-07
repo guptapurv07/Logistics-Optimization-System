@@ -18,6 +18,7 @@ std::string checkPhone(const std::string& phone, const char* label) {
         else if (c != ' ' && c != '-' && !(c == '+' && i == 0)) throw ApiError(400, std::string(label) + " can only contain digits, spaces and dashes");
     }
     if (digits < 10 || digits > 13) throw ApiError(400, std::string(label) + " must have 10 to 13 digits");
+    if (phone.rfind("+91", 0) == 0 && digits != 12) throw ApiError(400, std::string(label) + " must have 10 digits after +91");  // India
     return phone;
 }
 

@@ -54,7 +54,8 @@
                         </div>
                         <div class="field wide"><span class="hint goods-note" id="o-handling"></span></div>
                         <div class="field"><label for="o-receiver">Receiver name</label><input id="o-receiver" required maxlength="80"></div>
-                        <div class="field"><label for="o-phone">Receiver phone <span class="muted">(optional)</span></label><input id="o-phone" type="tel" maxlength="20"></div>
+                        <div class="field"><label for="o-phone">Receiver phone <span class="muted">(optional)</span></label>
+                            <div class="phone-row"><select id="o-phone-code" aria-label="Country code"></select><input id="o-phone" type="tel" maxlength="15"></div></div>
                         <div class="field wide"><label for="o-address">Delivery address</label><input id="o-address" required maxlength="200" placeholder="Building, street, area"></div>
                         <div class="field wide"><label for="o-notes">Notes for the driver <span class="muted">(optional)</span></label><input id="o-notes" maxlength="300"></div>
                     </div>
@@ -177,7 +178,7 @@
                 const result = await App.api('/api/customer/orders', {
                     warehouse_id: $('o-warehouse').value, goods_code: $('o-goods').value, quantity: $('o-quantity').value,
                     destination_city: $('o-destination').value, delivery_address: $('o-address').value,
-                    receiver_name: $('o-receiver').value, receiver_phone: $('o-phone').value, notes: $('o-notes').value,
+                    receiver_name: $('o-receiver').value, receiver_phone: App.phoneValue($('o-phone-code'), $('o-phone')), notes: $('o-notes').value,
                 });
                 $('order-result').innerHTML = `<p class="notice">Order <strong>#${result.id}</strong> placed:
                     ${App.formatNumber(result.weight_kg)} kg, ${App.formatNumber(result.volume_m3, 1)} m³, <strong>${App.formatMoney(result.price)}</strong> before GST.
@@ -188,6 +189,7 @@
             });
         });
 
+        App.phoneField($('o-phone-code'), $('o-phone'));
         $('o-goods').addEventListener('change', updateGoods);
         $('o-quantity').addEventListener('input', updatePreview);
         $('o-warehouse').addEventListener('change', updateDestinations);

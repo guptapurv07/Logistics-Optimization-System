@@ -40,6 +40,7 @@ private:
 std::string trim(const std::string& text);
 
 // An optional phone number: "" stays "", otherwise 10-13 digits with optional spaces, dashes and a leading +
+// (an Indian one, starting +91, has exactly 10 digits after the code)
 std::string checkPhone(const std::string& phone, const char* label);
 
 // A text column that may be NULL, as JSON null or text

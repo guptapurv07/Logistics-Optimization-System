@@ -10,52 +10,24 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="style.css">
     <style>
-        .auth { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 100vh; }
+        /* A plain page: almost white with a faint blue glow by day; at night a soft navy with blurred glows */
+        body.auth-page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background-attachment: fixed;
+            background-image: radial-gradient(70% 45% at 100% 0%, rgba(47, 109, 176, 0.07), transparent 70%), linear-gradient(180deg, #FFFFFF, #F5F8FC); }
+        :root[data-theme="dark"] body.auth-page {
+            --surface: #0F1825; --box: #1A2636; --box-hover: #233246; --line: #1F2C3D; --line-strong: #2D3C50; --muted: #A9B4C2;
+            background-image: radial-gradient(60% 45% at 100% 0%, rgba(110, 168, 230, 0.16), transparent 70%),
+                              radial-gradient(55% 40% at 0% 100%, rgba(47, 94, 147, 0.22), transparent 70%),
+                              linear-gradient(180deg, #111B28, #17222F);
+        }
+        .auth-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 40px; }
+        .auth-top .brand-name { display: inline; }   /* the app pages hide it on narrow screens; here it stays */
+        .auth-main { flex: 1; display: flex; justify-content: center; padding: clamp(12px, 5vh, 56px) 16px 40px; }
+        .auth-column { width: 100%; max-width: 400px; }
+        .auth-column h1 { font-size: 1.75rem; letter-spacing: -0.035em; }
+        .auth-column .lead { color: var(--muted); margin-top: 6px; }
+        .auth-foot { padding: 16px 40px 28px; color: var(--muted); font-size: 0.8rem; text-align: center; }
+        #session-banner { margin-bottom: 18px; }
 
-        /* Picture side: a full-height highway scene that stays in view while the form side scrolls */
-        .auth-art { position: sticky; top: 0; align-self: start; height: 100vh; height: 100dvh; overflow: hidden; isolation: isolate; min-width: 0;
-            padding: 32px 40px; display: flex; flex-direction: column; gap: clamp(32px, 9vh, 96px);
-            background: linear-gradient(180deg, var(--art-sky-top), var(--art-sky-bottom) 70%); }
-        .art-scene { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; }
-        .auth .brand-name { display: inline; }   /* the app pages hide it on narrow screens; here it stays */
-        .art-text h1 { font-size: clamp(2rem, 3.3vw, 3rem); letter-spacing: -0.035em; line-height: 1.08; max-width: 13ch; }
-        .art-text p { color: var(--muted); font-size: 1.05rem; max-width: 34ch; margin-top: 14px; }
-
-        /* Day shows the sun and clouds; night swaps them for a half moon, stars, lit windows and headlights */
-        .art-night { display: none; }
-        :root[data-theme="dark"] .art-day { display: none; }
-        :root[data-theme="dark"] .art-night { display: inline; }
-
-        /* The road and the scenery slide left, so the truck drives forward (to the right) */
-        .road-lines { animation: road 0.9s linear infinite; }
-        @keyframes road { to { stroke-dashoffset: 44; } }
-        .layer.far { animation: slide 120s linear infinite; }
-        .layer.near { animation: slide 40s linear infinite; }
-        .layer.posts { animation: posts 1.53s linear infinite; }
-        @keyframes slide { to { transform: translateX(-600px); } }
-        @keyframes posts { to { transform: translateX(-75px); } }
-        .cloud { animation: cloud 150s linear infinite; }
-        .cloud.c2 { animation-delay: -50s; }
-        .cloud.c3 { animation-delay: -100s; }
-        @keyframes cloud { from { transform: translateX(780px); } to { transform: translateX(-140px); } }
-        .hub { transform-box: fill-box; transform-origin: center; animation: spin 2.3s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .twinkle { animation: twinkle 4s ease-in-out infinite; }
-        .twinkle.t1 { animation-delay: -1.3s; }
-        .twinkle.t0 { animation-delay: -2.6s; }
-        @keyframes twinkle { 50% { opacity: 0.25; } }
-
-        .auth-panel { background: var(--surface); padding: 24px 40px 28px; display: flex; flex-direction: column; min-height: 100vh; min-width: 0; }
-        .auth-foot { width: 100%; max-width: 470px; margin: 32px auto 0; color: var(--muted); font-size: 0.8rem; }
-        .auth-top { display: flex; justify-content: flex-end; }
-        .auth-form { width: 100%; max-width: 470px; margin: auto; padding-top: 24px; }
-        .auth-form h2 { font-size: 1.6rem; letter-spacing: -0.03em; }
-        .auth-form .lead { color: var(--muted); margin-top: 4px; }
-        .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--box); padding: 4px; border-radius: 12px; margin: 22px 0 20px; }
-        .tab { border: 0; background: transparent; padding: 9px; border-radius: 9px; font-weight: 600; color: var(--muted); cursor: pointer;
-            transition: background-color var(--speed) ease-out, color var(--speed) ease-out; }
-        .tab:hover { color: var(--text); }
-        .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
         /* First step: one full-width bar per kind of account, square like the app's panels */
         .role-list { display: grid; gap: 10px; margin-top: 24px; }
         .role-bar { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 18px; text-align: left; cursor: pointer;
@@ -71,13 +43,22 @@
         .role-text span { color: var(--muted); font-size: 0.86rem; line-height: 1.35; }
         .role-bar .chevron { color: var(--muted); transition: transform var(--speed) ease-out, color var(--speed) ease-out; }
         .role-bar:hover .chevron { color: var(--text); transform: translateX(3px); }
+        .switch-line { margin-top: 22px; color: var(--muted); font-size: 0.92rem; text-align: center; }
+        .link-button { border: 0; background: none; padding: 0; color: var(--blue); font-weight: 600; cursor: pointer; }
+        .link-button:hover { text-decoration: underline; }
+        .link-button:disabled { color: var(--muted); cursor: default; text-decoration: none; opacity: 1; }
+
         /* Second step */
         .back-link { display: inline-flex; align-items: center; gap: 4px; margin: 0 0 14px -4px; padding: 4px; border: 0; border-radius: 6px; background: none;
             color: var(--muted); font-weight: 600; font-size: 0.86rem; cursor: pointer; transition: color var(--speed) ease-out; }
         .back-link:hover { color: var(--text); }
         .back-link .icon { width: 16px; height: 16px; }
-        #form-title:focus { outline: none; }   /* focused only so screen readers announce the new step */
-        #register-form > .group-title:first-child { margin-top: 0; }
+        h1[tabindex]:focus { outline: none; }   /* focused only so screen readers announce the new step */
+        .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--box); padding: 4px; border-radius: 12px; margin: 22px 0 20px; }
+        .tab { border: 0; background: transparent; padding: 9px; border-radius: 9px; font-weight: 600; color: var(--muted); cursor: pointer;
+            transition: background-color var(--speed) ease-out, color var(--speed) ease-out; }
+        .tab:hover { color: var(--text); }
+        .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
         fieldset { border: 0; min-width: 0; }
         fieldset[disabled] { display: none; }
         .group-title { margin: 22px 0 10px; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
@@ -85,205 +66,203 @@
         .form-message { display: none; margin-top: 16px; padding: 11px 14px; border-radius: var(--radius); font-weight: 500; font-size: 0.9rem; }
         .form-message.error { display: block; background: var(--danger-soft); color: var(--danger); }
         .form-message.ok { display: block; background: var(--ok-soft); color: var(--ok); }
+        .form-message.info { display: block; background: var(--blue-soft); color: var(--blue); }
         .demo { margin-top: 22px; font-size: 0.88rem; }
         .demo summary { cursor: pointer; font-weight: 600; color: var(--muted); }
         .demo summary:hover { color: var(--text); }
         .demo-group { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
         .demo-group > span { width: 100%; color: var(--muted); font-size: 0.8rem; }
-        /* Phones and narrow windows: the scene becomes a banner above the form */
-        @media (max-width: 900px) {
-            .auth { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-            .auth-art { position: relative; height: auto; aspect-ratio: 16 / 9; padding: 16px; }
-            .art-text { display: none; }
-            .auth-panel { min-height: 0; padding: 16px 16px 28px; }
+
+        /* Google's button (drawn by Google's script) or, until it loads, a stand-in that looks like it */
+        .google-slot { min-height: 44px; display: flex; justify-content: center; align-items: center; }
+        .google-stand-in { width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;
+            border: 1px solid #747775; border-radius: 4px; background: #FFFFFF; color: #1F1F1F; font: 500 14px/1 Roboto, Arial, sans-serif; letter-spacing: 0.25px; }
+        .google-stand-in:hover { background: #F7F8F8; }
+        :root[data-theme="dark"] .google-stand-in { background: #131314; color: #E3E3E3; border-color: #8E918F; }
+        :root[data-theme="dark"] .google-stand-in:hover { background: #1F1F21; }
+        .g-logo { width: 18px; height: 18px; flex: none; }
+        .divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 16px; color: var(--muted); font-size: 0.84rem; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line-strong); }
+        /* After "Sign up with Google": the account Google gave, instead of typing an email and a password */
+        .google-picked { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); }
+        .google-picked .who { flex: 1; min-width: 0; display: grid; }
+        .google-picked .who strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .google-picked .who span { color: var(--muted); font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .with-google .no-google { display: none; }
+        .google-note { margin-top: 8px; }
+        #register-form > .group-title:first-of-type { margin-top: 4px; }
+
+        /* Third step: the code from the email */
+        .code-input { font-size: 1.6rem !important; font-weight: 600; letter-spacing: 0.45em; text-align: center; font-variant-numeric: tabular-nums; padding: 12px 12px 12px 22px !important; }
+        .code-note { margin-top: 18px; }
+        .code-note strong { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
+        #code-form { margin-top: 22px; }
+
+        @media (max-width: 640px) {
+            .auth-top { padding: 14px 16px; }
+            .auth-top [data-theme-toggle] .label { display: none; }
+            .auth-foot { padding: 12px 16px 20px; }
         }
     </style>
 </head>
-<body>
-    <main class="auth">
-        <section class="auth-art">
-            <svg class="art-scene" viewBox="0 0 600 700" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-                <defs>
-                    <mask id="moon-cut"><rect width="600" height="700" fill="#fff"/><circle cx="487" cy="176" r="31" fill="#000"/></mask>
-                    <radialGradient id="sun-glow"><stop offset="0.5" style="stop-color: var(--art-sun); stop-opacity: 0.7"/><stop offset="1" style="stop-color: var(--art-sun); stop-opacity: 0"/></radialGradient>
-                    <radialGradient id="moon-glow"><stop offset="0.35" style="stop-color: var(--art-moon); stop-opacity: 0.16"/><stop offset="1" style="stop-color: var(--art-moon); stop-opacity: 0"/></radialGradient>
-                    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color: var(--art-light); stop-opacity: 0.4"/><stop offset="1" style="stop-color: var(--art-light); stop-opacity: 0"/></linearGradient>
-                </defs>
-                <g class="art-day">
-                    <circle cx="470" cy="190" r="84" fill="url(#sun-glow)"/>
-                    <circle cx="470" cy="190" r="42" style="fill: var(--art-sun)"/>
-                    <g style="fill: var(--art-cloud)">
-                        <g transform="translate(0 118)"><g class="cloud"><circle cx="20" cy="22" r="14"/><circle cx="40" cy="13" r="18"/><circle cx="61" cy="22" r="13"/><rect x="6" y="22" width="70" height="14" rx="7"/></g></g>
-                        <g transform="translate(0 236) scale(0.8)"><g class="cloud c2"><circle cx="20" cy="22" r="14"/><circle cx="40" cy="13" r="18"/><circle cx="61" cy="22" r="13"/><rect x="6" y="22" width="70" height="14" rx="7"/></g></g>
-                        <g transform="translate(0 318) scale(1.15)"><g class="cloud c3"><circle cx="20" cy="22" r="14"/><circle cx="40" cy="13" r="18"/><circle cx="61" cy="22" r="13"/><rect x="6" y="22" width="70" height="14" rx="7"/></g></g>
-                    </g>
-                </g>
-                <g class="art-night">
-                    <circle cx="470" cy="190" r="90" fill="url(#moon-glow)"/>
-                    <circle cx="470" cy="190" r="36" mask="url(#moon-cut)" style="fill: var(--art-moon)"/>
-                    <g style="fill: var(--art-star)"><circle class="twinkle t0" cx="372" cy="60" r="1.3"/><circle class="twinkle t1" cx="540" cy="92" r="1.5"/><circle cx="396" cy="300" r="1.2"/><circle class="twinkle t0" cx="568" cy="296" r="1.2"/><circle class="twinkle t1" cx="520" cy="352" r="1.1"/><circle cx="430" cy="330" r="1.6"/><circle class="twinkle t0" cx="580" cy="190" r="1.0"/><circle class="twinkle t1" cx="470" cy="40" r="1.2"/><circle cx="365" cy="180" r="1.1"/><circle class="twinkle t0" cx="560" cy="30" r="1.0"/><circle class="twinkle t1" cx="42" cy="330" r="1.4"/><circle cx="110" cy="380" r="1.1"/><circle class="twinkle t0" cx="150" cy="330" r="1.6"/><circle class="twinkle t1" cx="205" cy="400" r="1.2"/><circle cx="258" cy="352" r="1.0"/><circle class="twinkle t0" cx="300" cy="400" r="1.3"/><circle class="twinkle t1" cx="330" cy="320" r="1.2"/></g>
-                </g>
-                <g class="layer far">
-                    <path d="M0 465.5C6.7 464.2 13.3 463.3 20 463.0C26.7 462.7 33.3 463.0 40 463.7C46.7 464.3 53.3 465.6 60 466.9C66.7 468.3 73.3 470.0 80 471.5C86.7 473.0 93.3 474.7 100 476.0C106.7 477.2 113.3 478.3 120 478.9C126.7 479.5 133.3 479.7 140 479.6C146.7 479.5 153.3 478.8 160 478.1C166.7 477.4 173.3 476.2 180 475.2C186.7 474.2 193.3 473.0 200 472.1C206.7 471.3 213.3 470.5 220 470.1C226.7 469.7 233.3 469.7 240 470.0C246.7 470.3 253.3 471.0 260 472.0C266.7 473.0 273.3 474.4 280 475.8C286.7 477.2 293.3 479.0 300 480.6C306.7 482.3 313.3 484.1 320 485.6C326.7 487.2 333.3 488.7 340 490.1C346.7 491.5 353.3 492.7 360 493.8C366.7 494.8 373.3 495.8 380 496.6C386.7 497.5 393.3 498.2 400 499.0C406.7 499.7 413.3 500.3 420 500.9C426.7 501.5 433.3 502.0 440 502.4C446.7 502.7 453.3 503.0 460 502.9C466.7 502.8 473.3 502.6 480 501.9C486.7 501.2 493.3 500.2 500 498.8C506.7 497.4 513.3 495.5 520 493.5C526.7 491.4 533.3 488.8 540 486.3C546.7 483.8 553.3 480.9 560 478.3C566.7 475.8 573.3 473.1 580 470.9C586.7 468.8 593.3 466.8 600 465.5C606.7 464.2 613.3 463.3 620 463.0C626.7 462.7 633.3 463.0 640 463.7C646.7 464.3 653.3 465.6 660 466.9C666.7 468.3 673.3 470.0 680 471.5C686.7 473.0 693.3 474.7 700 476.0C706.7 477.2 713.3 478.3 720 478.9C726.7 479.5 733.3 479.7 740 479.6C746.7 479.5 753.3 478.8 760 478.1C766.7 477.4 773.3 476.2 780 475.2C786.7 474.2 793.3 473.0 800 472.1C806.7 471.3 813.3 470.5 820 470.1C826.7 469.7 833.3 469.7 840 470.0C846.7 470.3 853.3 471.0 860 472.0C866.7 473.0 873.3 474.4 880 475.8C886.7 477.2 893.3 479.0 900 480.6C906.7 482.3 913.3 484.1 920 485.6C926.7 487.2 933.3 488.7 940 490.1C946.7 491.5 953.3 492.7 960 493.8C966.7 494.8 973.3 495.8 980 496.6C986.7 497.5 993.3 498.2 1000 499.0C1006.7 499.7 1013.3 500.3 1020 500.9C1026.7 501.5 1033.3 502.0 1040 502.4C1046.7 502.7 1053.3 503.0 1060 502.9C1066.7 502.8 1073.3 502.6 1080 501.9C1086.7 501.2 1093.3 500.2 1100 498.8C1106.7 497.4 1113.3 495.5 1120 493.5C1126.7 491.4 1133.3 488.8 1140 486.3C1146.7 483.8 1153.3 480.9 1160 478.3C1166.7 475.8 1173.3 473.1 1180 470.9C1186.7 468.8 1193.3 466.8 1200 465.5V700H0Z" style="fill: var(--art-hill-far)"/>
-                    <g style="fill: var(--art-city)"><path d="M64 610V494l0-14 30 14 0-14 30 14 0-14 30 14 0-14 30 14V610Z"/><path d="M196 610V498l28-15 28 15V610Z"/><rect x="390" y="400" width="2" height="16"/><rect x="330" y="452" width="26" height="158"/><rect x="358" y="434" width="18" height="176"/><rect x="378" y="416" width="30" height="194"/><rect x="410" y="442" width="22" height="168"/><rect x="434" y="428" width="34" height="182"/><rect x="470" y="456" width="20" height="154"/><rect x="492" y="440" width="28" height="170"/><g transform="translate(600 0)"><path d="M64 610V494l0-14 30 14 0-14 30 14 0-14 30 14 0-14 30 14V610Z"/><path d="M196 610V498l28-15 28 15V610Z"/><rect x="390" y="400" width="2" height="16"/><rect x="330" y="452" width="26" height="158"/><rect x="358" y="434" width="18" height="176"/><rect x="378" y="416" width="30" height="194"/><rect x="410" y="442" width="22" height="168"/><rect x="434" y="428" width="34" height="182"/><rect x="470" y="456" width="20" height="154"/><rect x="492" y="440" width="28" height="170"/></g></g>
-                    <g class="art-night" style="fill: var(--art-lit)"><rect x="334" y="458" width="3" height="4"/><rect x="341" y="467" width="3" height="4"/><rect x="334" y="494" width="3" height="4"/><rect x="362" y="467" width="3" height="4"/><rect x="396" y="422" width="3" height="4"/><rect x="382" y="440" width="3" height="4"/><rect x="389" y="449" width="3" height="4"/><rect x="396" y="458" width="3" height="4"/><rect x="414" y="457" width="3" height="4"/><rect x="421" y="466" width="3" height="4"/><rect x="438" y="434" width="3" height="4"/><rect x="445" y="443" width="3" height="4"/><rect x="452" y="452" width="3" height="4"/><rect x="459" y="461" width="3" height="4"/><rect x="438" y="470" width="3" height="4"/><rect x="481" y="462" width="3" height="4"/><rect x="474" y="489" width="3" height="4"/><rect x="481" y="498" width="3" height="4"/><rect x="510" y="446" width="3" height="4"/><rect x="496" y="464" width="3" height="4"/><rect x="503" y="473" width="3" height="4"/><rect x="510" y="482" width="3" height="4"/><g transform="translate(600 0)"><rect x="334" y="458" width="3" height="4"/><rect x="341" y="467" width="3" height="4"/><rect x="334" y="494" width="3" height="4"/><rect x="362" y="467" width="3" height="4"/><rect x="396" y="422" width="3" height="4"/><rect x="382" y="440" width="3" height="4"/><rect x="389" y="449" width="3" height="4"/><rect x="396" y="458" width="3" height="4"/><rect x="414" y="457" width="3" height="4"/><rect x="421" y="466" width="3" height="4"/><rect x="438" y="434" width="3" height="4"/><rect x="445" y="443" width="3" height="4"/><rect x="452" y="452" width="3" height="4"/><rect x="459" y="461" width="3" height="4"/><rect x="438" y="470" width="3" height="4"/><rect x="481" y="462" width="3" height="4"/><rect x="474" y="489" width="3" height="4"/><rect x="481" y="498" width="3" height="4"/><rect x="510" y="446" width="3" height="4"/><rect x="496" y="464" width="3" height="4"/><rect x="503" y="473" width="3" height="4"/><rect x="510" y="482" width="3" height="4"/></g></g>
-                </g>
-                <g class="layer near">
-                    <path d="M0 526.7C6.7 525.9 13.3 525.5 20 525.7C26.7 525.9 33.3 526.8 40 527.8C46.7 528.9 53.3 530.5 60 532.0C66.7 533.5 73.3 535.2 80 536.6C86.7 538.0 93.3 539.3 100 540.5C106.7 541.6 113.3 542.4 120 543.3C126.7 544.2 133.3 544.9 140 545.9C146.7 547.0 153.3 548.1 160 549.4C166.7 550.7 173.3 552.3 180 553.8C186.7 555.2 193.3 557.0 200 558.2C206.7 559.3 213.3 560.4 220 560.8C226.7 561.1 233.3 561.0 240 560.3C246.7 559.5 253.3 558.0 260 556.4C266.7 554.7 273.3 552.4 280 550.4C286.7 548.4 293.3 546.2 300 544.5C306.7 542.8 313.3 541.4 320 540.4C326.7 539.5 333.3 539.1 340 538.8C346.7 538.5 353.3 538.8 360 538.8C366.7 538.8 373.3 539.0 380 538.9C386.7 538.8 393.3 538.5 400 538.1C406.7 537.7 413.3 537.0 420 536.5C426.7 535.9 433.3 535.2 440 534.9C446.7 534.6 453.3 534.5 460 534.6C466.7 534.8 473.3 535.4 480 536.0C486.7 536.5 493.3 537.5 500 538.1C506.7 538.6 513.3 539.2 520 539.3C526.7 539.3 533.3 539.0 540 538.3C546.7 537.5 553.3 536.2 560 534.8C566.7 533.5 573.3 531.7 580 530.3C586.7 529.0 593.3 527.5 600 526.7C606.7 525.9 613.3 525.5 620 525.7C626.7 525.9 633.3 526.8 640 527.8C646.7 528.9 653.3 530.5 660 532.0C666.7 533.5 673.3 535.2 680 536.6C686.7 538.0 693.3 539.3 700 540.5C706.7 541.6 713.3 542.4 720 543.3C726.7 544.2 733.3 544.9 740 545.9C746.7 547.0 753.3 548.1 760 549.4C766.7 550.7 773.3 552.3 780 553.8C786.7 555.2 793.3 557.0 800 558.2C806.7 559.3 813.3 560.4 820 560.8C826.7 561.1 833.3 561.0 840 560.3C846.7 559.5 853.3 558.0 860 556.4C866.7 554.7 873.3 552.4 880 550.4C886.7 548.4 893.3 546.2 900 544.5C906.7 542.8 913.3 541.4 920 540.4C926.7 539.5 933.3 539.1 940 538.8C946.7 538.5 953.3 538.8 960 538.8C966.7 538.8 973.3 539.0 980 538.9C986.7 538.8 993.3 538.5 1000 538.1C1006.7 537.7 1013.3 537.0 1020 536.5C1026.7 535.9 1033.3 535.2 1040 534.9C1046.7 534.6 1053.3 534.5 1060 534.6C1066.7 534.8 1073.3 535.4 1080 536.0C1086.7 536.5 1093.3 537.5 1100 538.1C1106.7 538.6 1113.3 539.2 1120 539.3C1126.7 539.3 1133.3 539.0 1140 538.3C1146.7 537.5 1153.3 536.2 1160 534.8C1166.7 533.5 1173.3 531.7 1180 530.3C1186.7 529.0 1193.3 527.5 1200 526.7V700H0Z" style="fill: var(--art-hill-near)"/>
-                    <g style="fill: var(--art-tree)"><rect x="35" y="521.2" width="2" height="9"/><circle cx="36" cy="515.2" r="9"/><rect x="117" y="537.0" width="2" height="9"/><circle cx="118" cy="531.0" r="9"/><rect x="261" y="549.8" width="2" height="9"/><circle cx="262" cy="543.8" r="9"/><rect x="403" y="531.9" width="2" height="9"/><circle cx="404" cy="525.9" r="9"/><rect x="529" y="533.1" width="2" height="9"/><circle cx="530" cy="527.1" r="9"/><g transform="translate(600 0)"><rect x="35" y="521.2" width="2" height="9"/><circle cx="36" cy="515.2" r="9"/><rect x="117" y="537.0" width="2" height="9"/><circle cx="118" cy="531.0" r="9"/><rect x="261" y="549.8" width="2" height="9"/><circle cx="262" cy="543.8" r="9"/><rect x="403" y="531.9" width="2" height="9"/><circle cx="404" cy="525.9" r="9"/><rect x="529" y="533.1" width="2" height="9"/><circle cx="530" cy="527.1" r="9"/></g></g>
-                </g>
-                <rect y="572" width="600" height="96" style="fill: var(--art-road)"/>
-                <g stroke-width="2" style="stroke: var(--art-road-edge)"><line x1="0" y1="579" x2="600" y2="579"/><line x1="0" y1="661" x2="600" y2="661"/></g>
-                <line class="road-lines" x1="0" y1="620" x2="600" y2="620" stroke-width="4" stroke-dasharray="26 18" style="stroke: var(--art-road-line)"/>
-                <rect y="668" width="600" height="32" style="fill: var(--art-verge)"/>
-                <g class="layer posts"><g style="fill: var(--art-post)"><rect x="0" y="557" width="3" height="15"/><rect x="75" y="557" width="3" height="15"/><rect x="150" y="557" width="3" height="15"/><rect x="225" y="557" width="3" height="15"/><rect x="300" y="557" width="3" height="15"/><rect x="375" y="557" width="3" height="15"/><rect x="450" y="557" width="3" height="15"/><rect x="525" y="557" width="3" height="15"/><rect x="600" y="557" width="3" height="15"/><rect x="675" y="557" width="3" height="15"/></g><g style="fill: var(--art-reflector)"><rect x="0" y="557" width="3" height="4"/><rect x="75" y="557" width="3" height="4"/><rect x="150" y="557" width="3" height="4"/><rect x="225" y="557" width="3" height="4"/><rect x="300" y="557" width="3" height="4"/><rect x="375" y="557" width="3" height="4"/><rect x="450" y="557" width="3" height="4"/><rect x="525" y="557" width="3" height="4"/><rect x="600" y="557" width="3" height="4"/><rect x="675" y="557" width="3" height="4"/></g></g>
-                <g class="truck">
-                    <ellipse cx="258" cy="612" rx="150" ry="5" style="fill: var(--art-shadow)"/>
-                    <path class="art-night" d="M403 556 L590 528 V600 L403 566Z" fill="url(#beam)"/>
-                    <rect x="112" y="483" width="204" height="96" rx="6" stroke-width="2.5" style="fill: var(--art-trailer); stroke: var(--blue)"/>
-                    <rect x="112" y="543" width="204" height="13" style="fill: var(--blue)"/>
-                    <text x="214" y="526" text-anchor="middle" font-size="24" font-weight="700" letter-spacing="-0.6" style="fill: var(--art-logo); font-family: var(--font)">TruckSetu</text>
-                    <path d="M316 510h54l33 36v33h-87z" style="fill: var(--blue)"/>
-                    <path d="M329 520h35l22 24h-57z" style="fill: var(--art-window)"/>
-                    <path d="M372 549v27M376 556h7" stroke-width="1.5" style="stroke: var(--art-dark); opacity: 0.35"/>
-                    <rect x="397" y="556" width="6" height="8" rx="1.5" style="fill: var(--art-light)"/>
-                    <rect x="109" y="561" width="4" height="12" rx="1" style="fill: var(--art-tail)"/>
-                    <rect x="112" y="579" width="291" height="9" style="fill: var(--art-dark)"/>
-                    <rect x="399" y="571" width="8" height="11" rx="2" style="fill: var(--art-dark)"/>
-                    <circle cx="157" cy="594" r="18" style="fill: var(--art-dark)"/><g class="hub"><circle cx="157" cy="594" r="8" style="fill: var(--art-hub)"/><g style="fill: var(--art-dark)"><circle cx="161.6" cy="594.0" r="1.5"/><circle cx="158.4" cy="598.4" r="1.5"/><circle cx="153.3" cy="596.7" r="1.5"/><circle cx="153.3" cy="591.3" r="1.5"/><circle cx="158.4" cy="589.6" r="1.5"/></g></g><circle cx="202" cy="594" r="18" style="fill: var(--art-dark)"/><g class="hub"><circle cx="202" cy="594" r="8" style="fill: var(--art-hub)"/><g style="fill: var(--art-dark)"><circle cx="206.6" cy="594.0" r="1.5"/><circle cx="203.4" cy="598.4" r="1.5"/><circle cx="198.3" cy="596.7" r="1.5"/><circle cx="198.3" cy="591.3" r="1.5"/><circle cx="203.4" cy="589.6" r="1.5"/></g></g><circle cx="364" cy="594" r="18" style="fill: var(--art-dark)"/><g class="hub"><circle cx="364" cy="594" r="8" style="fill: var(--art-hub)"/><g style="fill: var(--art-dark)"><circle cx="368.6" cy="594.0" r="1.5"/><circle cx="365.4" cy="598.4" r="1.5"/><circle cx="360.3" cy="596.7" r="1.5"/><circle cx="360.3" cy="591.3" r="1.5"/><circle cx="365.4" cy="589.6" r="1.5"/></g></g>
-                </g>
-            </svg>
-            <a class="brand" href="/login.html"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-bridge"/></svg></span><span class="brand-name">TruckSetu</span></a>
-            <div class="art-text">
-                <h1>Every truck, the shortest road.</h1>
-                <p>Book shipments, dispatch trucks and track every delivery, all in one place.</p>
-            </div>
-        </section>
+<body class="auth-page">
+    <header class="auth-top">
+        <a class="brand" href="/welcome.html"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-bridge"/></svg></span><span class="brand-name">TruckSetu</span></a>
+        <button type="button" class="btn btn-secondary btn-small" data-theme-toggle></button>
+    </header>
 
-        <section class="auth-panel">
-            <div class="auth-top"><button type="button" class="btn btn-secondary btn-small" data-theme-toggle></button></div>
-            <div class="auth-form">
-                <div id="session-banner" class="notice" hidden></div>
-                <!-- First step: which kind of account -->
-                <div id="choose-step">
-                    <h2>Welcome to TruckSetu</h2>
-                    <p class="lead">Choose how you want to continue.</p>
-                    <div class="role-list">
-                        <button type="button" class="role-bar" data-choose="customer">
-                            <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg></span>
-                            <span class="role-text"><strong>Continue as customer</strong><span>Book shipments and follow them to the door</span></span>
-                            <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
-                        </button>
-                        <button type="button" class="role-bar" data-choose="driver">
-                            <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg></span>
-                            <span class="role-text"><strong>Continue as truck driver</strong><span>See your trip, its route and the cargo</span></span>
-                            <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
-                        </button>
-                        <button type="button" class="role-bar" data-choose="manager">
-                            <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-warehouse"/></svg></span>
-                            <span class="role-text"><strong>Continue as warehouse manager</strong><span>Dispatch orders, run the fleet and approve drivers</span></span>
-                            <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
-                        </button>
-                    </div>
+    <main class="auth-main">
+        <div class="auth-column">
+            <div id="session-banner" class="notice" hidden></div>
+
+            <!-- First step: which kind of account -->
+            <section id="choose-step">
+                <h1 id="choose-title">Log in to TruckSetu</h1>
+                <p class="lead" id="choose-lead">Choose your kind of account.</p>
+                <div class="role-list">
+                    <button type="button" class="role-bar" data-choose="customer">
+                        <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg></span>
+                        <span class="role-text"><strong>Continue as customer</strong><span>Book shipments and follow them to the door</span></span>
+                        <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                    </button>
+                    <button type="button" class="role-bar" data-choose="driver">
+                        <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg></span>
+                        <span class="role-text"><strong>Continue as truck driver</strong><span>See your trip, its route and the cargo</span></span>
+                        <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                    </button>
+                    <button type="button" class="role-bar" data-choose="manager">
+                        <span class="role-icon"><svg class="icon" aria-hidden="true"><use href="#i-warehouse"/></svg></span>
+                        <span class="role-text"><strong>Continue as warehouse manager</strong><span>Dispatch orders, run the fleet and approve drivers</span></span>
+                        <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                    </button>
+                </div>
+                <p class="switch-line" id="switch-line"></p>
+            </section>
+
+            <!-- Second step: log in or create an account of that kind -->
+            <section id="role-step" hidden>
+                <button type="button" class="back-link" id="change-role"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>All account types</button>
+                <h1 id="form-title" tabindex="-1">Log in</h1>
+                <p class="lead" id="form-lead"></p>
+
+                <div class="tabs" role="tablist">
+                    <button type="button" class="tab active" data-tab="login-form">Log in</button>
+                    <button type="button" class="tab" data-tab="register-form">Create account</button>
                 </div>
 
-                <!-- Second step: log in or create an account of that kind -->
-                <div id="role-step" hidden>
-                    <button type="button" class="back-link" id="change-role"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>All account types</button>
-                    <h2 id="form-title" tabindex="-1">Log in</h2>
-                    <p class="lead" id="form-lead"></p>
+                <form id="login-form" autocomplete="on">
+                    <div class="google-slot" data-google="continue_with"></div>
+                    <div class="divider">or log in with your username</div>
+                    <div class="form-grid">
+                        <div class="field wide"><label for="login-username">Username or email</label><input id="login-username" name="username" autocomplete="username" required maxlength="120"></div>
+                        <div class="field wide"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
+                    </div>
+                    <div class="form-message" id="login-message" role="alert"></div>
+                    <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Log in</button>
+                    <p class="hint" style="margin-top: 10px; text-align: center;">We'll email you a code to finish logging in.</p>
 
-                    <div class="tabs" role="tablist">
-                        <button type="button" class="tab active" data-tab="login-form">Log in</button>
-                        <button type="button" class="tab" data-tab="register-form">Create account</button>
+                    <details class="demo">
+                        <summary>Demo accounts (password Demo@123)</summary>
+                        <div class="demo-group" data-role="manager"><span>Warehouse managers</span>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="admin">admin · Noida</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="sarah_logistics">sarah_logistics · Mumbai</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="mgr.kochi">mgr.kochi</button>
+                        </div>
+                        <div class="demo-group" data-role="driver"><span>Truck drivers (Noida)</span>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="raam">raam</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="shyam">shyam</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="rohit">rohit</button>
+                        </div>
+                        <div class="demo-group" data-role="customer"><span>Customers</span>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="sandhu_grain_traders">sandhu_grain_traders · Noida</button>
+                            <button type="button" class="btn btn-secondary btn-small" data-demo="pillai_distributors">pillai_distributors · Kochi</button>
+                        </div>
+                    </details>
+                </form>
+
+                <form id="register-form" hidden>
+                    <div class="google-slot no-google" data-google="signup_with"></div>
+                    <div class="google-picked" id="google-picked" hidden>
+                        <svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                        <span class="who"><strong id="google-picked-name"></strong><span id="google-picked-email"></span></span>
+                        <button type="button" class="link-button" id="google-undo">Use another email</button>
+                    </div>
+                    <p class="hint google-note" id="google-note" hidden></p>
+                    <div class="divider no-google">or sign up with your email</div>
+
+                    <div class="group-title">About you</div>
+                    <div class="form-grid">
+                        <div class="field"><label for="r-name">Full name</label><input id="r-name" required maxlength="80" autocomplete="name"></div>
+                        <div class="field no-google"><label for="r-email">Email</label><input id="r-email" type="email" required maxlength="120" autocomplete="email"></div>
+                        <div class="field wide"><label for="r-phone">Phone <span class="muted">(optional)</span></label>
+                            <div class="phone-row"><select id="r-phone-code" aria-label="Country code" autocomplete="tel-country-code"></select><input id="r-phone" type="tel" maxlength="15" autocomplete="tel-national"></div></div>
                     </div>
 
-                    <form id="login-form" autocomplete="on">
+                    <fieldset data-role="customer">
+                        <div class="group-title">Your company</div>
                         <div class="form-grid">
-                            <div class="field wide"><label for="login-username">Username</label><input id="login-username" name="username" autocomplete="username" required></div>
-                            <div class="field wide"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
+                            <div class="field"><label for="r-company">Company name</label><input id="r-company" required maxlength="100"></div>
+                            <div class="field"><label for="r-customer-city">City</label><select id="r-customer-city" required></select></div>
+                            <div class="field wide"><label for="r-customer-address">Address</label><input id="r-customer-address" required maxlength="200"></div>
                         </div>
-                        <div class="form-message" id="login-message" role="alert"></div>
-                        <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Log in</button>
+                    </fieldset>
 
-                        <details class="demo">
-                            <summary>Demo accounts (password Demo@123)</summary>
-                            <div class="demo-group" data-role="manager"><span>Warehouse managers</span>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="admin">admin · Noida</button>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="sarah_logistics">sarah_logistics · Mumbai</button>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="mgr.kochi">mgr.kochi</button>
-                            </div>
-                            <div class="demo-group" data-role="driver"><span>Truck drivers (Noida)</span>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="raam">raam</button>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="shyam">shyam</button>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="rohit">rohit</button>
-                            </div>
-                            <div class="demo-group" data-role="customer"><span>Customers</span>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="sandhu_grain_traders">sandhu_grain_traders · Noida</button>
-                                <button type="button" class="btn btn-secondary btn-small" data-demo="pillai_distributors">pillai_distributors · Kochi</button>
-                            </div>
-                        </details>
-                    </form>
-
-                    <form id="register-form" hidden>
-                        <div class="group-title">About you</div>
+                    <fieldset data-role="driver" disabled>
+                        <div class="group-title">Warehouse and licence</div>
                         <div class="form-grid">
-                            <div class="field"><label for="r-name">Full name</label><input id="r-name" required maxlength="80"></div>
-                            <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" required maxlength="120"></div>
-                            <div class="field wide"><label for="r-phone">Phone <span class="muted">(optional)</span></label><input id="r-phone" type="tel" maxlength="20" placeholder="98765 43210"></div>
+                            <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
+                            <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
+                            <div class="field">
+                                <label for="r-licence-class">Licence class</label>
+                                <select id="r-licence-class" required>
+                                    <option value="LMV">LMV: light trucks up to 7.5 t</option>
+                                    <option value="HMV">HMV: all trucks</option>
+                                </select>
+                            </div>
                         </div>
+                        <p class="hint" style="margin-top: 10px;">You can log in once the warehouse manager has approved your application.</p>
+                    </fieldset>
 
-                        <fieldset data-role="customer">
-                            <div class="group-title">Your company</div>
-                            <div class="form-grid">
-                                <div class="field"><label for="r-company">Company name</label><input id="r-company" required maxlength="100"></div>
-                                <div class="field"><label for="r-customer-city">City</label><select id="r-customer-city" required></select></div>
-                                <div class="field wide"><label for="r-customer-address">Address</label><input id="r-customer-address" required maxlength="200"></div>
-                            </div>
-                        </fieldset>
-
-                        <fieldset data-role="driver" disabled>
-                            <div class="group-title">Warehouse and licence</div>
-                            <div class="form-grid">
-                                <div class="field wide"><label for="r-warehouse">Warehouse to join</label><select id="r-warehouse" required></select></div>
-                                <div class="field"><label for="r-licence">Licence number</label><input id="r-licence" required maxlength="25" placeholder="e.g. MH12 20150012345"></div>
-                                <div class="field">
-                                    <label for="r-licence-class">Licence class</label>
-                                    <select id="r-licence-class" required>
-                                        <option value="LMV">LMV: light trucks up to 7.5 t</option>
-                                        <option value="HMV">HMV: all trucks</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <p class="hint" style="margin-top: 10px;">You can log in once the warehouse manager has approved your application.</p>
-                        </fieldset>
-
-                        <fieldset data-role="manager" disabled>
-                            <div class="group-title">Your warehouse</div>
-                            <div class="form-grid">
-                                <div class="field"><label for="r-warehouse-name">Warehouse name</label><input id="r-warehouse-name" required maxlength="60" placeholder="e.g. Goa Coastal Depot"></div>
-                                <div class="field"><label for="r-manager-city">City</label><select id="r-manager-city" required></select></div>
-                                <div class="field wide"><label for="r-manager-address">Warehouse address</label><input id="r-manager-address" required maxlength="200"></div>
-                            </div>
-                            <p class="hint" style="margin-top: 10px;">Each city has one warehouse for now, so cities that already have one aren't listed. A new warehouse starts with no trucks; add them under Fleet.</p>
-                        </fieldset>
-
-                        <div class="group-title">Login details</div>
+                    <fieldset data-role="manager" disabled>
+                        <div class="group-title">Your warehouse</div>
                         <div class="form-grid">
-                            <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
-                            <div class="field"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"></div>
-                            <div class="field"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
-                            <span class="hint">At least 8 characters, with a letter and a number</span>
+                            <div class="field"><label for="r-warehouse-name">Warehouse name</label><input id="r-warehouse-name" required maxlength="60" placeholder="e.g. Goa Coastal Depot"></div>
+                            <div class="field"><label for="r-manager-city">City</label><select id="r-manager-city" required></select></div>
+                            <div class="field wide"><label for="r-manager-address">Warehouse address</label><input id="r-manager-address" required maxlength="200"></div>
                         </div>
+                        <p class="hint" style="margin-top: 10px;">Each city has one warehouse for now, so cities that already have one aren't listed. A new warehouse starts with no trucks; add them under Fleet.</p>
+                    </fieldset>
 
-                        <div class="form-message" id="register-message" role="alert"></div>
-                        <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Create account</button>
-                    </form>
-                </div>
-            </div>
-            <p class="auth-foot">© 2026 TruckSetu</p>
-        </section>
+                    <div class="group-title">Login details</div>
+                    <div class="form-grid">
+                        <div class="field wide"><label for="r-username">Username</label><input id="r-username" required maxlength="30" autocomplete="username"><span class="hint">3–30 letters, numbers, dots, dashes or underscores</span></div>
+                        <div class="field no-google"><label for="r-password">Password</label><input id="r-password" type="password" required autocomplete="new-password"></div>
+                        <div class="field no-google"><label for="r-password2">Repeat password</label><input id="r-password2" type="password" required autocomplete="new-password"></div>
+                        <span class="hint no-google">At least 8 characters, with a letter and a number</span>
+                    </div>
+
+                    <div class="form-message" id="register-message" role="alert"></div>
+                    <button class="btn btn-primary btn-block" type="submit" style="margin-top: 18px;">Create account</button>
+                </form>
+            </section>
+
+            <!-- Third step: the code from the email, to finish a login or confirm a new account's address -->
+            <section id="code-step" hidden>
+                <button type="button" class="back-link" id="code-back"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>Back</button>
+                <h1 id="code-title" tabindex="-1">Check your email</h1>
+                <p class="lead" id="code-lead"></p>
+                <div class="notice code-note" id="code-note" hidden></div>
+                <form id="code-form" novalidate>
+                    <div class="field"><label for="code-input">6-digit code</label>
+                        <input id="code-input" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></div>
+                    <div class="form-message" id="code-message" role="alert"></div>
+                    <button class="btn btn-primary btn-block" type="submit" id="code-submit" style="margin-top: 18px;">Log in</button>
+                </form>
+                <p class="switch-line">Didn't get it? <button type="button" class="link-button" id="resend">Send a new code</button> <span class="muted" id="resend-wait"></span></p>
+            </section>
+        </div>
     </main>
+    <footer class="auth-foot">© 2026 TruckSetu</footer>
 
     <script src="app.js"></script>
     <script>
@@ -297,12 +276,37 @@
             manager: { login: 'Log in as a warehouse manager', loginLead: 'Dispatch orders, run the fleet and approve drivers.',
                        register: 'Open a warehouse', registerLead: 'Create your manager account and a new warehouse in one step.' },
         };
-        let role = null;   // the kind of account chosen on the first step
+        const G_LOGO = document.querySelector('#google-picked .g-logo').outerHTML;
+        let mode = new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login';
+        let role = null;           // the kind of account chosen on the first step
+        let googleSignup = null;   // after "Sign up with Google": { credential, email, name, username }
+        let pending = null;        // the code being waited for: what the server answered under "verify"
+        const googleState = { clientId: null, ready: false, failed: false };   // not named google: that is the name Google's script uses
 
         function showMessage(box, text, tone) {
             box.textContent = text;
             box.className = `form-message ${tone}`;
         }
+
+        // --- Log in or sign up: the first step's words, and ?mode=signup in the address so Reload keeps it ---
+        function setMode(next) {
+            mode = next;
+            const url = new URL(location.href);
+            if (mode === 'signup') url.searchParams.set('mode', 'signup');
+            else url.searchParams.delete('mode');
+            history.replaceState(history.state, '', url);
+            const signup = mode === 'signup';
+            document.title = signup ? 'TruckSetu | Sign up' : 'TruckSetu | Log in';
+            $('choose-title').textContent = signup ? 'Create your TruckSetu account' : 'Log in to TruckSetu';
+            $('choose-lead').textContent = signup ? 'What kind of account do you need?' : 'Choose your kind of account.';
+            $('switch-line').innerHTML = signup
+                ? 'Already have an account? <button type="button" class="link-button" data-mode="login">Log in</button>'
+                : 'New to TruckSetu? <button type="button" class="link-button" data-mode="signup">Create an account</button>';
+        }
+        $('switch-line').addEventListener('click', event => {
+            const button = event.target.closest('[data-mode]');
+            if (button) setMode(button.dataset.mode);
+        });
 
         // --- Tabs ---
         function openTab(formId) {
@@ -312,21 +316,25 @@
             $('register-form').hidden = login;
             $('form-title').textContent = login ? ROLES[role].login : ROLES[role].register;
             $('form-lead').textContent = login ? ROLES[role].loginLead : ROLES[role].registerLead;
+            if (mode !== (login ? 'login' : 'signup')) setMode(login ? 'login' : 'signup');
+            drawGoogleButtons();
         }
         document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => openTab(tab.dataset.tab)));
 
-        // --- Steps: first the kind of account, then its login and sign-up forms, where only its fields are shown and required.
-        // The kind is kept in the address (login.html#driver), so the browser's Back button returns to the first step. ---
+        // --- Steps: first the kind of account, then its login and sign-up forms, where only its fields are shown and required,
+        // then the code from the email. The kind is kept in the address (login.html#driver), so Back returns to the first step. ---
         function showStep(next) {
             role = ROLES[next] ? next : null;
+            pending = null;
             $('choose-step').hidden = !!role;
             $('role-step').hidden = !role;
+            $('code-step').hidden = true;
             if (!role) return;
             document.querySelectorAll('.demo-group').forEach(group => { group.hidden = group.dataset.role !== role; });
             document.querySelectorAll('fieldset[data-role]').forEach(f => { f.disabled = f.dataset.role !== role; });
             $('login-message').className = 'form-message';
             $('register-message').className = 'form-message';
-            openTab('login-form');
+            openTab(mode === 'signup' ? 'register-form' : 'login-form');
         }
         document.querySelectorAll('[data-choose]').forEach(bar => bar.addEventListener('click', () => {
             history.pushState({ role: bar.dataset.choose }, '', '#' + bar.dataset.choose);
@@ -336,7 +344,7 @@
         $('change-role').addEventListener('click', () => {
             if (history.state && history.state.role) history.back();   // the first step is the page before this one
             else {
-                history.replaceState(null, '', location.pathname);   // opened straight at login.html#driver
+                history.replaceState(null, '', location.pathname + location.search);   // opened straight at login.html#driver
                 showStep(null);
             }
         });
@@ -348,6 +356,230 @@
             $('login-password').value = 'Demo@123';
             $('login-password').focus();
         }));
+
+        // --- The code from the email ---
+        let resendTimer = null;
+        function showCode(verify) {
+            pending = verify;
+            $('choose-step').hidden = true;
+            $('role-step').hidden = true;
+            $('code-step').hidden = false;
+            const signup = verify.purpose === 'signup';
+            const email = `<strong>${App.escape(verify.email)}</strong>`;
+            $('code-title').textContent = signup ? 'Confirm your email' : 'Check your email';
+            $('code-lead').innerHTML = verify.delivery === 'email'
+                ? `We sent a 6-digit code to ${email}. It works for ${verify.minutes} minutes.`
+                : `Enter the 6-digit code for ${email}. It works for ${verify.minutes} minutes.`;
+            const note = $('code-note');
+            note.hidden = verify.delivery === 'email';
+            if (verify.delivery === 'demo') {
+                note.innerHTML = `This is a demo address (example.com addresses can't receive email), so here is the code:
+                    <strong>${App.escape(verify.code)}</strong> · <button type="button" class="link-button" id="fill-code">Fill it in</button>`;
+                $('fill-code').addEventListener('click', () => {
+                    $('code-input').value = verify.code;
+                    $('code-form').requestSubmit();
+                });
+            } else if (verify.delivery === 'console') {
+                note.textContent = "This server isn't set up to send email yet, so the code was printed in the window where ./app is running.";
+            }
+            $('code-submit').textContent = signup ? 'Confirm and create account' : 'Log in';
+            $('code-input').value = '';
+            $('code-input').disabled = false;
+            $('code-message').className = 'form-message';
+            startResendTimer(verify.resend_after);
+            $('code-input').focus();
+        }
+
+        function startResendTimer(seconds) {
+            clearInterval(resendTimer);
+            let left = seconds;
+            const tick = () => {
+                $('resend').disabled = left > 0;
+                $('resend-wait').textContent = left > 0 ? `(in ${left} s)` : '';
+                if (left-- <= 0) clearInterval(resendTimer);
+            };
+            tick();
+            resendTimer = setInterval(tick, 1000);
+        }
+
+        // Typing or pasting: digits only, and the sixth one sends the form
+        $('code-input').addEventListener('input', () => {
+            const digits = $('code-input').value.replace(/\D/g, '').slice(0, 6);
+            $('code-input').value = digits;
+            if (digits.length === 6) $('code-form').requestSubmit();
+        });
+
+        $('code-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = $('code-submit');
+            if (button.disabled || !pending) return;
+            const code = $('code-input').value.replace(/\D/g, '');
+            if (code.length !== 6) {
+                showMessage($('code-message'), 'Enter the 6-digit code from the email', 'error');
+                return;
+            }
+            button.disabled = true;
+            try {
+                const result = await App.api('/api/verify', { ticket: pending.ticket, code });
+                if (result.home) {
+                    location.href = result.home;
+                    return;
+                }
+                driverApplied(result.message);   // a new driver: the application went to the manager
+            } catch (error) {
+                showMessage($('code-message'), error.message, 'error');
+                // 410: the code ran out or was used; 429: too many tries. Either way only Back (and starting again) helps.
+                const over = error.status === 410 || (error.status === 429 && /start again/i.test(error.message));
+                $('code-input').disabled = over;
+                if (over) {
+                    pending = null;
+                    clearInterval(resendTimer);
+                    $('resend').disabled = true;
+                    $('resend-wait').textContent = '';
+                } else {
+                    $('code-input').select();
+                }
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        $('resend').addEventListener('click', async () => {
+            if (!pending) return;
+            $('resend').disabled = true;
+            try {
+                const result = await App.api('/api/verify/resend', { ticket: pending.ticket });
+                showCode(result.verify);
+                showMessage($('code-message'), result.verify.delivery === 'email' ? 'A new code is on its way.' : 'Here is a new code.', 'ok');
+            } catch (error) {
+                showMessage($('code-message'), error.message, 'error');
+                $('resend').disabled = false;
+            }
+        });
+
+        // Back to the form, still filled in, e.g. to fix a typing mistake in the email address
+        $('code-back').addEventListener('click', () => {
+            pending = null;
+            clearInterval(resendTimer);
+            $('code-step').hidden = true;
+            $('role-step').hidden = false;
+            drawGoogleButtons();
+            $('form-title').focus();
+        });
+
+        // A driver's application went to the manager: back to the login form, with the username filled in
+        function driverApplied(message) {
+            const username = $('r-username').value;
+            $('register-form').reset();
+            useGoogle(null);
+            pending = null;
+            clearInterval(resendTimer);
+            $('code-step').hidden = true;
+            $('role-step').hidden = false;
+            openTab('login-form');
+            $('login-username').value = username;
+            showMessage($('login-message'), message, 'ok');
+        }
+
+        // --- Google sign-in ---
+        // The server says whether it has a Google client ID. With one, Google's own script draws the button;
+        // until then (or without one) a stand-in that looks the same says what's missing when clicked.
+        async function loadGoogle() {
+            try {
+                googleState.clientId = (await App.api('/api/auth/options')).google_client_id;
+            } catch (unreachable) {
+                googleState.clientId = null;
+            }
+            if (googleState.clientId) {
+                const script = document.createElement('script');
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.async = true;
+                script.onload = () => {
+                    window.google.accounts.id.initialize({ client_id: googleState.clientId, callback: onGoogleCredential, ux_mode: 'popup', itp_support: true });
+                    googleState.ready = true;
+                    drawGoogleButtons();
+                };
+                script.onerror = () => { googleState.failed = true; };
+                document.head.appendChild(script);
+            }
+            drawGoogleButtons();
+        }
+
+        function drawGoogleButtons() {
+            document.querySelectorAll('.google-slot').forEach(slot => {
+                if (!slot.offsetParent) return;   // hidden: drawn when its form is shown
+                const label = slot.dataset.google === 'signup_with' ? 'Sign up with Google' : 'Continue with Google';
+                if (googleState.ready) {
+                    const width = Math.min(400, Math.round(slot.getBoundingClientRect().width));
+                    const drawn = `${App.theme()} ${width}`;
+                    if (slot.dataset.drawn === drawn) return;
+                    slot.dataset.drawn = drawn;
+                    slot.innerHTML = '';
+                    window.google.accounts.id.renderButton(slot, {
+                        type: 'standard', theme: App.theme() === 'dark' ? 'filled_black' : 'outline', size: 'large',
+                        text: slot.dataset.google, shape: 'rectangular', logo_alignment: 'center', width,
+                    });
+                } else if (!slot.dataset.drawn) {
+                    slot.dataset.drawn = 'stand-in';
+                    slot.innerHTML = `<button type="button" class="google-stand-in">${G_LOGO}<span>${label}</span></button>`;
+                    slot.firstElementChild.addEventListener('click', () => {
+                        const box = slot.closest('form').querySelector('.form-message');
+                        const text = !googleState.clientId ? "Google sign-in isn't switched on for this server yet. Use your username and password for now."
+                            : googleState.failed ? "Google's sign-in couldn't load. Check the internet connection and reload the page."
+                            : "Google's sign-in is still loading. Try again in a moment.";
+                        showMessage(box, text, 'info');
+                    });
+                }
+            });
+        }
+        window.addEventListener('themechange', drawGoogleButtons);
+        let resizeFrame = 0;
+        window.addEventListener('resize', () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(drawGoogleButtons); });
+
+        // Google says who signed in. An existing account is logged in straight away (Google has checked who it is);
+        // a new one gets the sign-up form with the Google email, and needs no password.
+        async function onGoogleCredential(response) {
+            const fromSignup = !$('register-form').hidden;
+            const box = fromSignup ? $('register-message') : $('login-message');
+            try {
+                const result = await App.api('/api/auth/google', { credential: response.credential, role });
+                if (result.home) {
+                    location.href = result.home;
+                    return;
+                }
+                useGoogle({ credential: response.credential, ...result.signup });
+                openTab('register-form');
+                $('register-message').className = 'form-message';
+                $('google-note').textContent = fromSignup ? 'Google gave us your name and email. Fill in the rest to create your account; no password is needed.'
+                    : "There's no TruckSetu account with this Google email yet. Fill in the rest to create one; no password is needed.";
+                $('form-title').focus();
+            } catch (error) {
+                showMessage(box, error.message, 'error');
+            }
+        }
+
+        // Switches the sign-up form between "with Google" (email from Google, no password) and typing everything
+        function useGoogle(info) {
+            googleSignup = info;
+            $('register-form').classList.toggle('with-google', !!info);
+            ['r-email', 'r-password', 'r-password2'].forEach(id => { $(id).disabled = !!info; });
+            $('google-picked').hidden = !info;
+            $('google-note').hidden = !info;
+            if (info) {
+                $('google-picked-name').textContent = info.name;
+                $('google-picked-email').textContent = info.email;
+                $('r-email').value = info.email;
+                if (!$('r-name').value.trim()) $('r-name').value = info.name;
+                if (!$('r-username').value.trim() && info.username) $('r-username').value = info.username;
+            }
+            drawGoogleButtons();
+        }
+        $('google-undo').addEventListener('click', () => {
+            useGoogle(null);
+            $('r-email').value = '';
+            $('register-message').className = 'form-message';
+            $('r-email').focus();
+        });
 
         // --- Lists for the sign-up form come from the server ---
         async function loadLists() {
@@ -367,22 +599,24 @@
                 banner.innerHTML = `Logged in as <strong>${App.escape(me.user.full_name)}</strong> (${App.escape(me.user.role)}).
                     <a href="${App.escape(me.home)}">Continue</a> · <a href="#" id="banner-logout">Log out</a>`;
                 banner.hidden = false;
-                banner.style.marginBottom = '18px';
                 $('banner-logout').addEventListener('click', event => { event.preventDefault(); App.logout(); });
             } catch (notLoggedIn) {
                 // the server couldn't say: just show the forms
             }
         }
 
+        // Step 1 of a login: the password. The server then emails a code, and the code step opens.
         $('login-form').addEventListener('submit', async event => {
             event.preventDefault();
             const button = $('login-form').querySelector('button[type=submit]');
             button.disabled = true;
             try {
                 const result = await App.api('/api/login', { username: $('login-username').value, password: $('login-password').value, role });
-                location.href = result.home;
+                $('login-message').className = 'form-message';
+                showCode(result.verify);
             } catch (error) {
                 showMessage($('login-message'), error.message, 'error');
+            } finally {
                 button.disabled = false;
             }
         });
@@ -390,14 +624,13 @@
         $('register-form').addEventListener('submit', async event => {
             event.preventDefault();
             const box = $('register-message');
-            if ($('r-password').value !== $('r-password2').value) {
+            if (!googleSignup && $('r-password').value !== $('r-password2').value) {
                 showMessage(box, 'The two passwords are not the same', 'error');
                 return;
             }
-            const body = {
-                role, full_name: $('r-name').value, email: $('r-email').value, phone: $('r-phone').value,
-                username: $('r-username').value, password: $('r-password').value,
-            };
+            const body = { role, full_name: $('r-name').value, phone: App.phoneValue($('r-phone-code'), $('r-phone')), username: $('r-username').value };
+            if (googleSignup) body.google_credential = googleSignup.credential;   // the email comes from Google; no password needed
+            else Object.assign(body, { email: $('r-email').value, password: $('r-password').value });
             if (role === 'customer') Object.assign(body, { company_name: $('r-company').value, city: $('r-customer-city').value, address: $('r-customer-address').value });
             if (role === 'driver') Object.assign(body, { warehouse_id: $('r-warehouse').value, licence_no: $('r-licence').value, licence_class: $('r-licence-class').value });
             if (role === 'manager') Object.assign(body, { warehouse_name: $('r-warehouse-name').value, city: $('r-manager-city').value, address: $('r-manager-address').value });
@@ -406,15 +639,10 @@
             button.disabled = true;
             try {
                 const result = await App.api('/api/register', body);
-                if (result.home) {
-                    location.href = result.home;   // customers and new managers are logged in straight away
-                    return;
-                }
-                // Drivers wait for approval: show where the request went and prepare the login form
-                $('register-form').reset();
-                openTab('login-form');
-                $('login-username').value = body.username;
-                showMessage($('login-message'), result.message, 'ok');
+                box.className = 'form-message';
+                if (result.verify) showCode(result.verify);              // a typed email: confirm it with the code first
+                else if (result.home) location.href = result.home;       // with Google: customers and managers go straight in
+                else driverApplied(result.message);
             } catch (error) {
                 showMessage(box, error.message, 'error');
             } finally {
@@ -422,9 +650,12 @@
             }
         });
 
+        setMode(mode);
+        App.phoneField($('r-phone-code'), $('r-phone'));
         showStep(location.hash.slice(1));
         loadLists().catch(error => App.notify(error.message, 'error'));   // a toast, seen on either step
         checkSession();
+        loadGoogle();
     </script>
 </body>
 </html>

@@ -171,6 +171,28 @@ ALTER TABLE orders ADD COLUMN price REAL CHECK (price >= 0);                  --
 ALTER TABLE trips ADD COLUMN driver_pay REAL CHECK (driver_pay >= 0);         -- the driver's pay for the km there and back
 )SQL";
 
+// Codes sent by email (codes.cpp): one to finish each password login, one to confirm the address of a new account.
+// The browser holds a random ticket that goes with the code; only hashes of the two are kept here.
+const char* const kSchemaV4 = R"SQL(
+CREATE TABLE email_codes (
+    ticket_hash TEXT PRIMARY KEY,
+    purpose     TEXT NOT NULL CHECK (purpose IN ('login', 'signup')),
+    user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,   -- a login: whose
+    email       TEXT NOT NULL COLLATE NOCASE,                      -- where the code was sent
+    signup_json TEXT,                                              -- a sign-up: the checked form, password already hashed
+    code_hash   TEXT NOT NULL,                                     -- SHA-256 of ticket + code
+    tries       INTEGER NOT NULL DEFAULT 0,                        -- wrong codes typed so far
+    sends       INTEGER NOT NULL DEFAULT 1,                        -- codes sent for this ticket
+    sent_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at  TEXT NOT NULL,
+    CHECK ((purpose = 'login') = (user_id IS NOT NULL)),
+    CHECK ((purpose = 'signup') = (signup_json IS NOT NULL))
+);
+
+CREATE INDEX idx_email_codes_user  ON email_codes(user_id);
+CREATE INDEX idx_email_codes_email ON email_codes(email);
+)SQL";
+
 int readSchemaVersion(Database& db) {
     Statement version = db.prepare("PRAGMA user_version");
     version.step();
@@ -193,6 +215,7 @@ void createSchema(Database& db) {
     if (version < 1) db.exec(kSchemaV1);
     if (version < 2) db.exec(kSchemaV2);
     if (version < 3) db.exec(kSchemaV3);
+    if (version < 4) db.exec(kSchemaV4);
     db.exec("PRAGMA user_version = " + std::to_string(kSchemaVersion));
     tx.commit();
 }
